@@ -19,7 +19,7 @@
 
 
 *{margin: 0;padding: 0;box-sizing: border-box;-webkit-tap-highlight-color: transparent;}
-body{overflow: hidden;font-family: var(--font-main);background-color: var(--base-200);}
+body{overflow-x: hidden;font-family: var(--font-main);background-color: var(--base-200);}
 
 img{
   width: 100%;
