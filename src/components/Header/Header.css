@@ -37,3 +37,11 @@
     display: flex;
     gap:.625rem;
 }
+
+@media (max-width: 1200px) {
+    .Header__content{gap:1.5rem;}
+    .Header__item{gap:.25rem;}
+}
+@media (max-width: 800px) {
+    .Header__content{display: none;}
+}

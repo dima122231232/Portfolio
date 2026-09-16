@@ -2,8 +2,8 @@ import "lenis/dist/lenis.css";
 import "./globals.css";
 
 import LenisProvider from "@/components/providers/LenisProvider";
-import Header from "@/components/sections/Header/Header";
-import Footer from "@/components/sections/Footer/Footer";
+import Header from "@/components/Header/Header";
+import Footer from "@/components/Footer/Footer";
 
 export const metadata = {
   title: "ImagineCo",

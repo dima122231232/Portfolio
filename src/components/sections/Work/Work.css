@@ -45,3 +45,15 @@
     position:relative;
     width:100%;
 }
+
+
+@media (max-width: 1200px) {
+    .Work{padding:3rem 1rem;}
+    .Work__wrapper{grid-template-columns: repeat(2, 1fr);gap:3.5rem;}
+    .Work__intro{margin: 0 auto 6.5rem;}
+}
+@media (max-width: 800px) {
+    .Work__wrapper{grid-template-columns:1fr;gap:0;}
+    .Work__intro{margin: 0 auto 3.5rem;}
+    .Work__cell {padding: var(--indent);}
+}

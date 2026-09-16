@@ -81,7 +81,6 @@
 
 }
 
-
-/* .Work__effectClone {
-    filter: blur(calc(var(--footer-progress, 0) * 6px));
-} */
+@media (max-width: 800px) {
+    .Footer , .Footer__links{flex-direction: column;height: auto;}
+}

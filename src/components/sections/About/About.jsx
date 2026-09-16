@@ -30,8 +30,8 @@ export default function About() {
                         </ul>
 
                         <ul className="Bio__values">
-                            <li>dmytro matiushenko</li>
-                            <li>twenty-three</li>
+                            <li>dmytro</li>
+                            <li>20</li>
                             <li>ukraine</li>
                             <li>ukraine (temp.)</li>
                         </ul>

@@ -67,7 +67,7 @@ export default function Home() {
                 onEnterBack={handleSceneEnterBack}
             />
 
-            <div style={{ height: "105svh" }}></div>
+            <div className="enterAnout"></div>
             <About />
             <PcRoom/>
             <Work/> 
