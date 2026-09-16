@@ -610,10 +610,15 @@ export function createFooterWebGLRuntime({
                 .16;
         };
 
-    window.addEventListener(
-        "pointermove",
-        handlePointerMove
-    );
+    const isTouchDevice =
+        window.matchMedia("(pointer: coarse)").matches;
+
+    if (!isTouchDevice) {
+        window.addEventListener(
+            "pointermove",
+            handlePointerMove
+        );
+    }
 
     const handleResize =
         () => {
@@ -779,10 +784,12 @@ export function createFooterWebGLRuntime({
 
             disposed = true;
 
-            window.removeEventListener(
-                "pointermove",
-                handlePointerMove
-            );
+            if (!isTouchDevice) {
+                window.removeEventListener(
+                    "pointermove",
+                    handlePointerMove
+                );
+            }
 
             window.removeEventListener(
                 "resize",

@@ -1236,15 +1236,21 @@ export function createWebGLRuntime({
         }
     );
 
-    window.addEventListener(
-        "pointermove",
-        updatePointer
-    );
+    const isTouchDevice =
+        window.matchMedia("(pointer: coarse)").matches;
 
-    window.addEventListener(
-        "pointermove",
-        updatePhotoHover
-    );
+    if (!isTouchDevice) {
+        window.addEventListener(
+            "pointermove",
+            updatePointer
+        );
+
+        window.addEventListener(
+            "pointermove",
+            updatePhotoHover
+        );
+    }
+
 
     window.addEventListener(
         "resize",
@@ -1402,15 +1408,17 @@ export function createWebGLRuntime({
 
             disposed = true;
 
-            window.removeEventListener(
-                "pointermove",
-                updatePointer
-            );
+            if (!isTouchDevice) {
+                window.removeEventListener(
+                    "pointermove",
+                    updatePointer
+                );
 
-            window.removeEventListener(
-                "pointermove",
-                updatePhotoHover
-            );
+                window.removeEventListener(
+                    "pointermove",
+                    updatePhotoHover
+                );
+            }
 
             window.removeEventListener(
                 "resize",

@@ -28,3 +28,9 @@
 @media (max-width: 800px) {
     .PcScene p{left: var(--indent);}
 }
+@media (max-width: 800px) {
+    .PcScene__canvas {
+        pointer-events: none;
+        touch-action: pan-y;
+    }
+}
