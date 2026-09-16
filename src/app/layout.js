@@ -1,0 +1,25 @@
+import "lenis/dist/lenis.css";
+import "./globals.css";
+
+import LenisProvider from "@/components/providers/LenisProvider";
+import Header from "@/components/sections/Header/Header";
+import Footer from "@/components/sections/Footer/Footer";
+
+export const metadata = {
+  title: "ImagineCo",
+//   description: "MAY 2026",
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <LenisProvider>
+            <Header/>
+            {children}
+            <Footer/>
+        </LenisProvider>
+      </body>
+    </html>
+  );
+}

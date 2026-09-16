@@ -1,0 +1,38 @@
+.global-mesh{
+    position: fixed;
+    top: 0;
+    height: 100svh;
+    width:100vw;
+    z-index: -1;
+}
+
+.mesh-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.mesh-line {
+    stroke: var(--base-0);
+    stroke-opacity: 0.075;
+}
+
+.mesh-cross {
+    stroke: var(--base-100);
+    stroke-opacity: 1;
+    opacity: 0;
+}
+.mesh-line:nth-child(1),
+.mesh-line:nth-child(2) {
+    transform: scaleY(0);
+}
+.Bg__blur{
+    background: linear-gradient(0deg, #313236 -1.82%, #31323684 43.56%, #eaebe500);
+    height: 100svh;
+    width:100%;
+    left: 0;
+    opacity: 0;
+    position: fixed;
+    top: 0;
+    z-index:15;
+}
+

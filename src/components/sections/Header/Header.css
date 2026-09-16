@@ -1,0 +1,39 @@
+.Header{
+    position: fixed;
+    display: flex;
+    justify-content: space-between;
+    height: auto;
+    width: 100%;
+    z-index: 100;
+    top:0;
+    background-color: var(--base-150);
+    padding:.25rem var(--indent);
+}
+
+.Header__title{
+    color: var(--base-200);
+}
+
+.Header__content{
+    display: flex;
+    gap:3.75rem;
+    float: right;
+}
+
+.Header__label{
+    color: var(--base-200);
+}
+
+.Header__link ,.Header__value{
+    color: var(--base-100);
+    text-decoration: none;
+    font-size:.75rem;
+    font-weight:700;
+    line-height:95%;
+    letter-spacing: -2%;
+}
+
+.Header__item{
+    display: flex;
+    gap:.625rem;
+}

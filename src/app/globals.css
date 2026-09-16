@@ -1,0 +1,51 @@
+@import url(./fonts.css);
+:root{
+    --indent:20px;
+
+    --font-head: "PP", sans-serif;
+    --font-main: "BT", sans-serif;
+
+    --base-0: #000000;
+    --base-50: #010101;
+    --base-100: #888888;
+    --base-150: #101010;
+    --base-200: #F1F1F1;
+    --base-300: rgba(0, 0, 0, .075);
+
+    --accent-0: #78170F;
+    --accent-100: #4B527A;
+}
+
+
+
+*{margin: 0;padding: 0;box-sizing: border-box;-webkit-tap-highlight-color: transparent;}
+body{overflow: hidden;font-family: var(--font-main);background-color: var(--base-200);}
+
+img{
+  width: 100%;
+  object-fit: cover;
+}
+
+h1,
+h2,
+h3{
+    font-family: var(--font-head);
+    font-weight: 200;
+    font-size:2.5rem;
+}
+
+p , li{
+    color: var(--base-0);
+    font-size:.75rem;
+    font-weight:700;
+    line-height:95%;
+    letter-spacing: -2%;
+}
+span{
+    color: var(--base-100);
+    font-size:.75rem;
+    font-weight:700;
+    line-height:95%;
+    letter-spacing: -2%;
+}
+
