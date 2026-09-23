@@ -145,7 +145,7 @@ export default function Work() {
                         <img src="/img/work/10.png" alt="Evgeni Kozyhov portfolio website" />
                         <div>
                             <span>Evgeni Kozyhov</span>
-                            <span>2023</span>
+                            <span>2022</span>
                         </div>
                     </div>
 

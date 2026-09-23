@@ -70,7 +70,7 @@ export default function Home() {
             <div className="enterAnout"></div>
             <About />
             <PcRoom/>
-            <Work/> 
+            <Work/>
         </main>
     );
 }

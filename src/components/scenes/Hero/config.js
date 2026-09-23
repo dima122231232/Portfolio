@@ -96,7 +96,7 @@ export const SCENE_CONFIG = {
             z: .45,
         },
 
-        height: .038,
+        height: .015,
 
         glow: {
             opacity: 0,
