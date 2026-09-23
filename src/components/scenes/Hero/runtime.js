@@ -3,7 +3,6 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -11,178 +10,22 @@ import { SCENE_CONFIG } from "./config";
 import {
     createParticleSystem,
     createParticleVolumeHelper,
-    updateParticleSystem
+    updateParticleSystem,
 } from "./particles";
 import { disposeObject } from "../shared/dispose";
+import {
+    createAtmospherePass,
+} from "../shared/atmosphere";
+import {
+    getPixelRatio,
+    getRenderQuality,
+} from "../shared/renderQuality";
 
-gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== "undefined") {
+    gsap.registerPlugin(ScrollTrigger);
+}
 
-const ATMOSPHERE_SHADER = {
-    uniforms: {
-        tDiffuse: {
-            value: null,
-        },
-
-        uTime: {
-            value: 0,
-        },
-
-        uGrain: {
-            value:
-                SCENE_CONFIG
-                    .atmosphere
-                    .grain,
-        },
-
-        uScanline: {
-            value:
-                SCENE_CONFIG
-                    .atmosphere
-                    .scanline,
-        },
-
-        uVignette: {
-            value:
-                SCENE_CONFIG
-                    .atmosphere
-                    .vignette,
-        },
-
-        uChromatic: {
-            value:
-                SCENE_CONFIG
-                    .atmosphere
-                    .chromatic,
-        },
-    },
-
-    vertexShader: `
-        varying vec2 vUv;
-
-        void main() {
-            vUv = uv;
-
-            gl_Position =
-                projectionMatrix *
-                modelViewMatrix *
-                vec4(position, 1.0);
-        }
-    `,
-
-    fragmentShader: `
-        uniform sampler2D tDiffuse;
-        uniform float uTime;
-        uniform float uGrain;
-        uniform float uScanline;
-        uniform float uVignette;
-        uniform float uChromatic;
-
-        varying vec2 vUv;
-
-        float random(vec2 p) {
-            return fract(
-                sin(
-                    dot(
-                        p,
-                        vec2(
-                            12.9898,
-                            78.233
-                        )
-                    )
-                ) *
-                43758.5453
-            );
-        }
-
-        void main() {
-            vec2 uv = vUv;
-
-            float r =
-                texture2D(
-                    tDiffuse,
-                    uv +
-                    vec2(
-                        uChromatic,
-                        0.0
-                    )
-                ).r;
-
-            float g =
-                texture2D(
-                    tDiffuse,
-                    uv
-                ).g;
-
-            float b =
-                texture2D(
-                    tDiffuse,
-                    uv -
-                    vec2(
-                        uChromatic,
-                        0.0
-                    )
-                ).b;
-
-            vec3 color =
-                vec3(
-                    r,
-                    g,
-                    b
-                );
-
-            float noise =
-                random(
-                    uv * 900.0 +
-                    uTime
-                );
-
-            color +=
-                (
-                    noise - .5
-                ) *
-                uGrain;
-
-            float scan =
-                sin(
-                    uv.y * 900.0
-                ) *
-                .5 +
-                .5;
-
-            color *=
-                1.0 -
-                scan *
-                uScanline;
-
-            vec2 centered =
-                uv -
-                .5;
-
-            float vignette =
-                smoothstep(
-                    .15,
-                    .8,
-                    dot(
-                        centered,
-                        centered
-                    )
-                );
-
-            color *=
-                1.0 -
-                vignette *
-                uVignette;
-
-            gl_FragColor =
-                vec4(
-                    color,
-                    1.0
-                );
-        }
-    `,
-};
-
-function createRenderer(canvas) {
+function createRenderer(canvas, quality) {
     const canvasElement =
         canvas?.current ??
         canvas?.querySelector?.("canvas") ??
@@ -199,56 +42,17 @@ function createRenderer(canvas) {
         return null;
     }
 
-    canvas = canvasElement;
-
-    const contextAttributes = {
+    const renderer = new THREE.WebGLRenderer({
+        canvas: canvasElement,
+        antialias: quality.antialias,
         alpha: false,
-        antialias:
-            SCENE_CONFIG
-                .renderer
-                .antialias,
-        depth: true,
+        powerPreference: "high-performance",
         stencil: false,
         preserveDrawingBuffer: false,
-        powerPreference: "high-performance",
-    };
-
-    let context =
-        canvas.getContext("webgl2");
-
-    if (!context) {
-        context =
-            canvas.getContext(
-                "webgl",
-                contextAttributes
-            );
-    }
-
-    if (!context) {
-        console.error(
-            "Three.js: WebGL is not available."
-        );
-
-        return null;
-    }
-
-    const renderer =
-        new THREE.WebGLRenderer({
-            canvas,
-            context,
-            antialias:
-                SCENE_CONFIG
-                    .renderer
-                    .antialias,
-        });
+    });
 
     renderer.setPixelRatio(
-        Math.min(
-            window.devicePixelRatio,
-            SCENE_CONFIG
-                .renderer
-                .maxPixelRatio
-        )
+        getPixelRatio(quality.maxPixelRatio)
     );
 
     renderer.setSize(
@@ -261,23 +65,15 @@ function createRenderer(canvas) {
         THREE.SRGBColorSpace;
 
     renderer.toneMapping =
-        SCENE_CONFIG
-            .renderer
-            .toneMapping;
+        SCENE_CONFIG.renderer.toneMapping;
 
     renderer.toneMappingExposure =
-        SCENE_CONFIG
-            .renderer
-            .toneMappingExposure;
+        SCENE_CONFIG.renderer.toneMappingExposure;
 
-    if (
-        SCENE_CONFIG
-            .renderer
-            .shadows
-    ) {
-        renderer.shadowMap.enabled =
-            true;
+    renderer.shadowMap.enabled =
+        SCENE_CONFIG.renderer.shadows;
 
+    if (renderer.shadowMap.enabled) {
         renderer.shadowMap.type =
             THREE.PCFShadowMap;
     }
@@ -286,26 +82,16 @@ function createRenderer(canvas) {
 }
 
 function createScene() {
-    const scene =
-        new THREE.Scene();
+    const scene = new THREE.Scene();
+    const background = new THREE.Color(
+        SCENE_CONFIG.background.color
+    );
 
-    const background =
-        new THREE.Color(
-            SCENE_CONFIG
-                .background
-                .color
-        );
-
-    scene.background =
-        background;
-
-    scene.fog =
-        new THREE.FogExp2(
-            background,
-            SCENE_CONFIG
-                .background
-                .fogDensity
-        );
+    scene.background = background;
+    scene.fog = new THREE.FogExp2(
+        background,
+        SCENE_CONFIG.background.fogDensity
+    );
 
     return scene;
 }
@@ -315,17 +101,15 @@ function createCamera() {
         fov,
         near,
         far,
-        position
+        position,
     } = SCENE_CONFIG.camera;
 
-    const camera =
-        new THREE.PerspectiveCamera(
-            fov,
-            window.innerWidth /
-                window.innerHeight,
-            near,
-            far
-        );
+    const camera = new THREE.PerspectiveCamera(
+        fov,
+        window.innerWidth / window.innerHeight,
+        near,
+        far
+    );
 
     camera.position.set(
         position.x,
@@ -336,92 +120,70 @@ function createCamera() {
     return camera;
 }
 
-function createPhotoScene() {
-    return new THREE.Scene();
+function createPointLight(config) {
+    const light = new THREE.PointLight(
+        config.color,
+        config.intensity,
+        config.distance
+    );
+
+    light.position.set(
+        config.position.x,
+        config.position.y,
+        config.position.z
+    );
+
+    return light;
 }
 
 function createPhoto(onLoad) {
-    const textureLoader =
-        new THREE.TextureLoader();
+    const textureLoader = new THREE.TextureLoader();
 
     textureLoader.load(
         SCENE_CONFIG.photo.path,
-
         (texture) => {
             texture.colorSpace =
                 THREE.SRGBColorSpace;
-
             texture.anisotropy = 4;
 
-            const imageWidth =
-                texture.image.width;
-
-            const imageHeight =
-                texture.image.height;
-
             const aspect =
-                imageWidth /
-                imageHeight;
-
+                texture.image.width /
+                texture.image.height;
             const height =
-                SCENE_CONFIG
-                    .photo
-                    .height;
+                SCENE_CONFIG.photo.height;
+            const width = height * aspect;
 
-            const width =
-                height * aspect;
-
-            const geometry =
-                new THREE.PlaneGeometry(
-                    width,
-                    height
-                );
+            const geometry = new THREE.PlaneGeometry(
+                width,
+                height
+            );
 
             const material =
                 new THREE.MeshBasicMaterial({
                     map: texture,
                     transparent: true,
                     opacity:
-                        SCENE_CONFIG
-                            .photo
-                            .opacity,
-                    alphaTest: .01,
-                    side:
-                        THREE.FrontSide,
+                        SCENE_CONFIG.photo.opacity,
+                    alphaTest: 0.01,
+                    side: THREE.FrontSide,
                     depthWrite: true,
                 });
 
-            const photo =
-                new THREE.Mesh(
-                    geometry,
-                    material
-                );
-
-            photo.position.set(
-                SCENE_CONFIG
-                    .photo
-                    .position
-                    .x,
-
-                SCENE_CONFIG
-                    .photo
-                    .position
-                    .y,
-
-                SCENE_CONFIG
-                    .photo
-                    .position
-                    .z
+            const photo = new THREE.Mesh(
+                geometry,
+                material
             );
 
-            photo.name =
-                "ThreeScenePhoto";
+            photo.position.set(
+                SCENE_CONFIG.photo.position.x,
+                SCENE_CONFIG.photo.position.y,
+                SCENE_CONFIG.photo.position.z
+            );
 
+            photo.name = "ThreeScenePhoto";
             onLoad(photo);
         },
-
         undefined,
-
         (error) => {
             console.error(
                 `Failed to load photo: ${SCENE_CONFIG.photo.path}`,
@@ -437,35 +199,22 @@ function createPhotoGlow(photo) {
             color: 0xffd9a8,
             transparent: true,
             opacity:
-                SCENE_CONFIG
-                    .photo
-                    .glow
-                    .opacity,
-            side:
-                THREE.FrontSide,
+                SCENE_CONFIG.photo.glow.opacity,
+            side: THREE.FrontSide,
             depthWrite: false,
-            blending:
-                THREE.AdditiveBlending,
+            blending: THREE.AdditiveBlending,
         });
 
-    const geometry =
-        photo.geometry.clone();
-
-    const glow =
-        new THREE.Mesh(
-            geometry,
-            material
-        );
-
-    glow.position.copy(
-        photo.position
+    const geometry = photo.geometry.clone();
+    const glow = new THREE.Mesh(
+        geometry,
+        material
     );
 
+    glow.position.copy(photo.position);
+
     const glowScale =
-        SCENE_CONFIG
-            .photo
-            .glow
-            .scale;
+        SCENE_CONFIG.photo.glow.scale;
 
     if (glowScale) {
         glow.scale.set(
@@ -475,20 +224,17 @@ function createPhotoGlow(photo) {
         );
     }
 
-    glow.name =
-        "ThreeScenePhotoGlow";
-
+    glow.name = "ThreeScenePhotoGlow";
     return glow;
 }
 
 function createText() {
-    const canvas =
-        document.createElement(
-            "canvas"
-        );
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
 
-    const context =
-        canvas.getContext("2d");
+    if (!context) {
+        return null;
+    }
 
     const {
         content,
@@ -501,77 +247,48 @@ function createText() {
         getComputedStyle(
             document.documentElement
         )
-            .getPropertyValue(
-                "--font-main"
-            )
+            .getPropertyValue("--font-main")
             .trim();
 
-    const font =
-        `${fontWeight} ${fontSize}px ${fontFamily || "sans-serif"}`;
+    const font = `${fontWeight} ${fontSize}px ${fontFamily || "sans-serif"}`;
 
     context.font = font;
 
     const padding = 8;
+    const metrics = context.measureText(content);
 
-    const metrics =
-        context.measureText(
-            content
-        );
-
-    canvas.width =
-        Math.ceil(
-            metrics.width +
-            padding * 2
-        );
-
-    canvas.height =
-        Math.ceil(
-            fontSize * 1.5 +
-            padding * 2
-        );
+    canvas.width = Math.ceil(
+        metrics.width + padding * 2
+    );
+    canvas.height = Math.ceil(
+        fontSize * 1.5 + padding * 2
+    );
 
     context.font = font;
     context.fillStyle = color;
     context.textAlign = "center";
-    context.textBaseline =
-        "middle";
-
+    context.textBaseline = "middle";
     context.fillText(
         content,
         canvas.width / 2,
         canvas.height / 2
     );
 
-    const texture =
-        new THREE.CanvasTexture(
-            canvas
-        );
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
 
-    texture.colorSpace =
-        THREE.SRGBColorSpace;
+    const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 1,
+        depthWrite: false,
+        depthTest: false,
+    });
 
-    texture.minFilter =
-        THREE.LinearFilter;
-
-    texture.magFilter =
-        THREE.LinearFilter;
-
-    const material =
-        new THREE.SpriteMaterial({
-            map: texture,
-            transparent: true,
-            opacity: 1,
-            depthWrite: false,
-            depthTest: false,
-        });
-
-    const text =
-        new THREE.Sprite(
-            material
-        );
-
-    const scale =
-        .00018;
+    const text = new THREE.Sprite(material);
+    const scale = 0.00018;
 
     text.scale.set(
         canvas.width * scale,
@@ -580,38 +297,20 @@ function createText() {
     );
 
     text.position.set(
-        SCENE_CONFIG
-            .text
-            .position
-            .x,
-
-        SCENE_CONFIG
-            .text
-            .position
-            .y,
-
-        SCENE_CONFIG
-            .text
-            .position
-            .z
+        SCENE_CONFIG.text.position.x,
+        SCENE_CONFIG.text.position.y,
+        SCENE_CONFIG.text.position.z
     );
 
-    text.name =
-        "ThreeSceneText";
-
+    text.name = "ThreeSceneText";
     return text;
 }
 
 function disposePhoto(photo) {
     if (!photo) return;
 
-    const material =
-        photo.material;
-
-    if (material?.map) {
-        material.map.dispose();
-    }
-
+    const material = photo.material;
+    material?.map?.dispose?.();
     material?.dispose?.();
     photo.geometry?.dispose?.();
 }
@@ -630,126 +329,66 @@ function disposeText(text) {
     text.material?.dispose?.();
 }
 
-function createPointLight(config) {
-    const light =
-        new THREE.PointLight(
-            config.color,
-            config.intensity,
-            config.distance
-        );
-
-    light.position.set(
-        config.position.x,
-        config.position.y,
-        config.position.z
-    );
-
-    return light;
-}
-
 function configureModel(model) {
     model.position.set(
-        SCENE_CONFIG
-            .model
-            .position
-            .x,
-
-        SCENE_CONFIG
-            .model
-            .position
-            .y,
-
-        SCENE_CONFIG
-            .model
-            .position
-            .z
+        SCENE_CONFIG.model.position.x,
+        SCENE_CONFIG.model.position.y,
+        SCENE_CONFIG.model.position.z
     );
 
-    model.traverse(
-        (object) => {
-            if (!object.isMesh) return;
+    model.traverse((object) => {
+        if (!object.isMesh) return;
 
-            object.castShadow =
-                SCENE_CONFIG
-                    .renderer
-                    .shadows;
+        object.castShadow =
+            SCENE_CONFIG.renderer.shadows;
+        object.receiveShadow =
+            SCENE_CONFIG.renderer.shadows;
 
-            object.receiveShadow =
-                SCENE_CONFIG
-                    .renderer
-                    .shadows;
+        const materials = Array.isArray(
+            object.material
+        )
+            ? object.material
+            : [object.material];
 
-            const materials =
-                Array.isArray(
-                    object.material
-                )
-                    ? object.material
-                    : [object.material];
+        materials.forEach((material) => {
+            if (!material) return;
 
-            materials.forEach(
-                (material) => {
-                    if (!material) return;
+            if (material.transparent) {
+                material.depthWrite = false;
+            }
 
-                    if (
-                        material.transparent
-                    ) {
-                        material.depthWrite =
-                            false;
-                    }
+            if (material.map) {
+                material.map.colorSpace =
+                    THREE.SRGBColorSpace;
+                material.map.anisotropy = 4;
+            }
 
-                    if (material.map) {
-                        material.map.colorSpace =
-                            THREE.SRGBColorSpace;
+            const name = (
+                material.name || ""
+            ).toLowerCase();
 
-                        material.map.anisotropy =
-                            4;
-                    }
+            if (
+                name.includes("screen") ||
+                name.includes("monitor")
+            ) {
+                material.roughness = 0.2;
+            } else if (name.includes("metal")) {
+                material.roughness = 0.35;
+            } else if (
+                name.includes("mirror") ||
+                name.includes("glass")
+            ) {
+                material.roughness = 0.08;
+            } else {
+                material.roughness = Math.max(
+                    material.roughness,
+                    0.65
+                );
+            }
 
-                    const name =
-                        material.name
-                            .toLowerCase();
-
-                    if (
-                        name.includes(
-                            "screen"
-                        ) ||
-                        name.includes(
-                            "monitor"
-                        )
-                    ) {
-                        material.roughness =
-                            .2;
-                    } else if (
-                        name.includes(
-                            "metal"
-                        )
-                    ) {
-                        material.roughness =
-                            .35;
-                    } else if (
-                        name.includes(
-                            "mirror"
-                        ) ||
-                        name.includes(
-                            "glass"
-                        )
-                    ) {
-                        material.roughness =
-                            .08;
-                    } else {
-                        material.roughness =
-                            Math.max(
-                                material.roughness,
-                                .65
-                            );
-                    }
-
-                    material.needsUpdate =
-                        true;
-                }
-            );
-        }
-    );
+            material.needsUpdate = true;
+        });
+    });
 
     return model;
 }
@@ -758,38 +397,31 @@ export function createWebGLRuntime({
     canvas,
     wrapper,
     onLeave,
-    onEnterBack
+    onEnterBack,
+    onReady,
 }) {
     if (!canvas || !wrapper) {
         return null;
     }
 
     let disposed = false;
+    let isActive = true;
+    let animationFrame = 0;
+    let elapsedTime = 0;
+    let previousTimestamp = null;
 
     let model = null;
     let photo = null;
     let photoGlow = null;
     let text = null;
 
-    let animationFrame = 0;
-
-    const layers =
-        new Set();
-
-    const scene =
-        createScene();
-
-    const photoScene =
-        createPhotoScene();
-
-    const heroGroup =
-        new THREE.Group();
-
-    const camera =
-        createCamera();
-
-    const renderer =
-        createRenderer(canvas);
+    const quality = getRenderQuality();
+    const layers = new Set();
+    const scene = createScene();
+    const photoScene = new THREE.Scene();
+    const heroGroup = new THREE.Group();
+    const camera = createCamera();
+    const renderer = createRenderer(canvas, quality);
 
     if (!renderer) {
         return null;
@@ -800,566 +432,371 @@ export function createWebGLRuntime({
     scene.add(heroGroup);
     scene.add(camera);
 
-    const mainLight =
-        createPointLight(
-            SCENE_CONFIG
-                .lights
-                .main
-        );
+    const mainLight = createPointLight(
+        SCENE_CONFIG.lights.main
+    );
+    heroGroup.add(mainLight);
 
-    heroGroup.add(
-        mainLight
+    const sunLight = createPointLight(
+        SCENE_CONFIG.lights.sun
+    );
+    heroGroup.add(sunLight);
+
+    const coreLight = createPointLight(
+        SCENE_CONFIG.lights.core
+    );
+    camera.add(coreLight);
+
+    const pixelRatio = getPixelRatio(
+        quality.maxPixelRatio
     );
 
-    const sunLight =
-        createPointLight(
-            SCENE_CONFIG
-                .lights
-                .sun
-        );
-
-    heroGroup.add(
-        sunLight
+    const particleSystem = createParticleSystem(
+        pixelRatio
     );
-
-    const coreLight =
-        createPointLight(
-            SCENE_CONFIG
-                .lights
-                .core
-        );
-
-    camera.add(
-        coreLight
-    );
-
-    const particleSystem =
-        createParticleSystem();
-
-    heroGroup.add(
-        particleSystem
-    );
+    heroGroup.add(particleSystem);
 
     const particleVolumeHelper =
         createParticleVolumeHelper();
 
     if (particleVolumeHelper) {
-        heroGroup.add(
-            particleVolumeHelper
-        );
+        heroGroup.add(particleVolumeHelper);
     }
 
-    const composer =
-        new EffectComposer(
-            renderer
-        );
+    const composer = new EffectComposer(renderer);
+    composer.setPixelRatio(pixelRatio);
 
-    const pixelRatio =
-        Math.min(
-            window.devicePixelRatio,
-            SCENE_CONFIG
-                .renderer
-                .maxPixelRatio
-        );
-
-    composer.setPixelRatio(
-        pixelRatio
+    const renderPass = new RenderPass(
+        scene,
+        camera
     );
 
-    const renderPass =
-        new RenderPass(
-            scene,
-            camera
-        );
-
-    const bloomPass =
-        new UnrealBloomPass(
-            new THREE.Vector2(
-                window.innerWidth,
-                window.innerHeight
-            ),
-
-            SCENE_CONFIG
-                .bloom
-                .strength,
-
-            SCENE_CONFIG
-                .bloom
-                .radius,
-
-            SCENE_CONFIG
-                .bloom
-                .threshold
-        );
-
-    const atmospherePass =
-        new ShaderPass(
-            ATMOSPHERE_SHADER
-        );
-
-    const outputPass =
-        new OutputPass();
-
-    composer.addPass(
-        renderPass
+    const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(
+            window.innerWidth,
+            window.innerHeight
+        ),
+        SCENE_CONFIG.bloom.strength,
+        SCENE_CONFIG.bloom.radius,
+        SCENE_CONFIG.bloom.threshold
     );
 
-    composer.addPass(
-        bloomPass
+    const atmospherePass = createAtmospherePass(
+        SCENE_CONFIG.atmosphere,
+        quality.isMobile
     );
 
-    composer.addPass(
-        atmospherePass
-    );
+    const outputPass = new OutputPass();
 
-    composer.addPass(
-        outputPass
-    );
+    composer.addPass(renderPass);
+    composer.addPass(bloomPass);
+    composer.addPass(atmospherePass);
+    composer.addPass(outputPass);
 
-    createPhoto(
-        (loadedPhoto) => {
-            if (disposed) {
-                disposePhoto(
-                    loadedPhoto
-                );
-
-                return;
-            }
-
-            photo =
-                loadedPhoto;
-
-            photoScene.add(
-                photo
-            );
-
-            photoGlow =
-                createPhotoGlow(
-                    photo
-                );
-
-            scene.add(
-                photoGlow
-            );
-
-            text =
-                createText();
-
-            photoScene.add(
-                text
-            );
+    createPhoto((loadedPhoto) => {
+        if (disposed) {
+            disposePhoto(loadedPhoto);
+            return;
         }
-    );
+
+        photo = loadedPhoto;
+        photoScene.add(photo);
+
+        photoGlow = createPhotoGlow(photo);
+        scene.add(photoGlow);
+
+        text = createText();
+        if (text) {
+            photoScene.add(text);
+        }
+    });
 
     const baseCameraRotation = {
-        x:
-            camera.rotation.x,
-
-        y:
-            camera.rotation.y,
+        x: camera.rotation.x,
+        y: camera.rotation.y,
     };
 
     const baseCameraPosition = {
-        x:
-            camera.position.x,
-
-        y:
-            camera.position.y,
-
-        z:
-            camera.position.z,
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z,
     };
 
-    const pointer =
-        new THREE.Vector2();
+    const pointer = new THREE.Vector2();
+    const raycaster = new THREE.Raycaster();
 
-    const raycaster =
-        new THREE.Raycaster();
+    const coreDefaultColor = new THREE.Color(
+        SCENE_CONFIG.lights.core.color
+    );
+    const coreHoverColor = new THREE.Color(
+        0xba55d3
+    );
 
-    const coreDefaultColor =
-        new THREE.Color(
-            SCENE_CONFIG
-                .lights
-                .core
-                .color
-        );
+    let isPhotoHovered = false;
 
-    const coreHoverColor =
-        new THREE.Color(
-            0xBA55D3
-        );
-
-    let isPhotoHovered =
-        false;
-
-    const updatePointer =
-        (event) => {
-            pointer.set(
-                (
-                    event.clientX /
-                    window.innerWidth
-                ) *
-                2 -
-                1,
-
-                -(
-                    (
-                        event.clientY /
-                        window.innerHeight
-                    ) *
+    const updatePointer = (event) => {
+        pointer.set(
+            (event.clientX / window.innerWidth) * 2 - 1,
+            -(
+                (event.clientY / window.innerHeight) *
                     2 -
-                    1
-                )
-            );
+                1
+            )
+        );
 
-            gsap.to(
-                camera.rotation,
-                {
-                    x:
-                        baseCameraRotation.x +
-                        pointer.y *
-                        SCENE_CONFIG
-                            .interaction
-                            .pointer
-                            .rotationX,
+        gsap.to(camera.rotation, {
+            x:
+                baseCameraRotation.x +
+                pointer.y *
+                    SCENE_CONFIG.interaction.pointer.rotationX,
+            y:
+                baseCameraRotation.y -
+                pointer.x *
+                    SCENE_CONFIG.interaction.pointer.rotationY,
+            duration:
+                SCENE_CONFIG.interaction.pointer.duration,
+            ease:
+                SCENE_CONFIG.interaction.pointer.ease,
+            overwrite: true,
+        });
+    };
 
-                    y:
-                        baseCameraRotation.y -
-                        pointer.x *
-                        SCENE_CONFIG
-                            .interaction
-                            .pointer
-                            .rotationY,
+    const updatePhotoHover = (event) => {
+        if (!photo) return;
 
-                    duration:
-                        SCENE_CONFIG
-                            .interaction
-                            .pointer
-                            .duration,
+        const mouse = new THREE.Vector2(
+            (event.clientX / window.innerWidth) * 2 - 1,
+            -(
+                (event.clientY / window.innerHeight) *
+                    2 -
+                1
+            )
+        );
 
-                    ease:
-                        SCENE_CONFIG
-                            .interaction
-                            .pointer
-                            .ease,
+        raycaster.setFromCamera(mouse, camera);
 
-                    overwrite: true,
-                }
-            );
+        const hovered =
+            raycaster.intersectObject(
+                photo,
+                false
+            ).length > 0;
+
+        if (hovered === isPhotoHovered) {
+            return;
+        }
+
+        isPhotoHovered = hovered;
+
+        gsap.to(coreLight.color, {
+            r: hovered
+                ? coreHoverColor.r
+                : coreDefaultColor.r,
+            g: hovered
+                ? coreHoverColor.g
+                : coreDefaultColor.g,
+            b: hovered
+                ? coreHoverColor.b
+                : coreDefaultColor.b,
+            duration: 0.8,
+            ease: "power2.out",
+            overwrite: true,
+        });
+    };
+
+    const handleResize = () => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const nextPixelRatio = getPixelRatio(
+            quality.maxPixelRatio
+        );
+
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+
+        renderer.setPixelRatio(nextPixelRatio);
+        renderer.setSize(width, height, false);
+
+        composer.setPixelRatio(nextPixelRatio);
+        composer.setSize(width, height);
+
+        bloomPass.resolution.set(width, height);
+        atmospherePass.uniforms.uGrain.value =
+            SCENE_CONFIG.atmosphere.grain;
+
+        particleSystem.userData.setPixelRatio?.(
+            nextPixelRatio
+        );
+
+        layers.forEach((layer) => {
+            layer.resize?.(width, height);
+        });
+
+        ScrollTrigger.refresh();
+    };
+
+    const registerLayer = (layer) => {
+        layers.add(layer);
+
+        return () => {
+            layers.delete(layer);
         };
+    };
 
-    const updatePhotoHover =
-        (event) => {
-            if (!photo) return;
+    const setActive = (active) => {
+        isActive = active;
 
-            const mouse =
-                new THREE.Vector2();
+        if (!isActive || document.hidden) {
+            previousTimestamp = null;
 
-            mouse.x =
-                (
-                    event.clientX /
-                    window.innerWidth
-                ) *
-                2 -
-                1;
-
-            mouse.y =
-                -(
-                    (
-                        event.clientY /
-                        window.innerHeight
-                    ) *
-                    2 -
-                    1
-                );
-
-            raycaster.setFromCamera(
-                mouse,
-                camera
-            );
-
-            const intersects =
-                raycaster.intersectObject(
-                    photo,
-                    false
-                );
-
-            const hovered =
-                intersects.length > 0;
-
-            if (
-                hovered ===
-                isPhotoHovered
-            ) {
-                return;
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = 0;
             }
 
-            isPhotoHovered =
-                hovered;
+            return;
+        }
 
-            gsap.to(
-                coreLight.color,
-                {
-                    r:
-                        hovered
-                            ? coreHoverColor.r
-                            : coreDefaultColor.r,
+        if (!animationFrame) {
+            animationFrame = requestAnimationFrame(render);
+        }
+    };
 
-                    g:
-                        hovered
-                            ? coreHoverColor.g
-                            : coreDefaultColor.g,
+    const handleVisibilityChange = () => {
+        setActive(isActive);
+    };
 
-                    b:
-                        hovered
-                            ? coreHoverColor.b
-                            : coreDefaultColor.b,
-
-                    duration: .8,
-
-                    ease: "power2.out",
-
-                    overwrite: true,
-                }
-            );
-        };
-
-    const handleResize =
-        () => {
-            const width =
-                window.innerWidth;
-
-            const height =
-                window.innerHeight;
-
-            const nextPixelRatio =
-                Math.min(
-                    window.devicePixelRatio,
-                    SCENE_CONFIG
-                        .renderer
-                        .maxPixelRatio
-                );
-
-            camera.aspect =
-                width / height;
-
-            camera.updateProjectionMatrix();
-
-            renderer.setPixelRatio(
-                nextPixelRatio
-            );
-
-            renderer.setSize(
-                width,
-                height,
-                false
-            );
-
-            composer.setPixelRatio(
-                nextPixelRatio
-            );
-
-            composer.setSize(
-                width,
-                height
-            );
-
-            bloomPass.resolution.set(
-                width,
-                height
-            );
-
-            atmospherePass
-                .uniforms
-                .uGrain
-                .value =
-                SCENE_CONFIG
-                    .atmosphere
-                    .grain;
-
-            layers.forEach(
-                (layer) => {
-                    layer.resize?.(
-                        width,
-                        height
-                    );
-                }
-            );
-
-            ScrollTrigger.refresh();
-        };
-
-    const registerLayer =
-        (layer) => {
-            layers.add(layer);
-
-            return () =>
-                layers.delete(
-                    layer
-                );
-        };
-
-    const loader =
-        new GLTFLoader();
+    const loader = new GLTFLoader();
 
     loader.load(
-        SCENE_CONFIG
-            .model
-            .path,
-
+        SCENE_CONFIG.model.path,
         (gltf) => {
             if (disposed) {
-                disposeObject(
-                    gltf.scene
-                );
-
+                disposeObject(gltf.scene);
                 return;
             }
 
-            model =
-                configureModel(
-                    gltf.scene
-                );
-
-            heroGroup.add(
-                model
-            );
+            model = configureModel(gltf.scene);
+            heroGroup.add(model);
+            onReady?.({ status: "ready" });
         },
-
         undefined,
-
         (error) => {
             console.error(
                 `Failed to load Three.js model: ${SCENE_CONFIG.model.path}`,
                 error
             );
+
+            onReady?.({
+                status: "error",
+                error,
+            });
         }
     );
 
-    const isTouchDevice =
-        window.matchMedia("(pointer: coarse)").matches;
+    const isTouchDevice = quality.isMobile;
 
     if (!isTouchDevice) {
         window.addEventListener(
             "pointermove",
             updatePointer
         );
-
         window.addEventListener(
             "pointermove",
             updatePhotoHover
         );
     }
 
-
     window.addEventListener(
         "resize",
         handleResize
     );
 
-    const scrollTween =
-        gsap.to(
-            camera.position,
-            {
-                z:
-                    baseCameraPosition.z +
-                    SCENE_CONFIG
-                        .interaction
-                        .scroll
-                        .cameraZ,
+    document.addEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+    );
 
-                ease: "none",
+    const scrollTween = gsap.to(
+        camera.position,
+        {
+            z:
+                baseCameraPosition.z +
+                SCENE_CONFIG.interaction.scroll.cameraZ,
+            ease: "none",
+            scrollTrigger: {
+                trigger: wrapper,
+                start: "top top",
+                end: () =>
+                    `+=${window.innerHeight * SCENE_CONFIG.interaction.scroll.endMultiplier}px`,
+                scrub:
+                    SCENE_CONFIG.interaction.scroll.scrub,
+                invalidateOnRefresh: true,
+                onLeave: () => {
+                    setActive(false);
 
-                scrollTrigger: {
-                    trigger:
-                        wrapper,
+                    gsap.to(".webgl-section", {
+                        opacity: 0,
+                        duration: 0.5,
+                        ease: "none",
+                    });
 
-                    start:
-                        "top top",
-
-                    end: () =>
-                        `+=${window.innerHeight * SCENE_CONFIG.interaction.scroll.endMultiplier}px`,
-
-                    scrub:
-                        SCENE_CONFIG
-                            .interaction
-                            .scroll
-                            .scrub,
-
-                    invalidateOnRefresh:
-                        true,
-
-                    onLeave: () => {
-                        gsap.to(
-                            ".webgl-section",
-                            {
-                                opacity: 0,
-                                duration: .5,
-                                ease: "none",
-                            }
-                        );
-
-                        onLeave?.();
-                    },
-
-                    onEnterBack: () => {
-                        gsap.to(
-                            ".webgl-section",
-                            {
-                                opacity: 1,
-                                duration: .2,
-                                ease: "none",
-                            }
-                        );
-
-                        onEnterBack?.();
-                    },
+                    onLeave?.();
                 },
-            }
-        );
+                onEnterBack: () => {
+                    setActive(true);
+
+                    gsap.to(".webgl-section", {
+                        opacity: 1,
+                        duration: 0.2,
+                        ease: "none",
+                    });
+
+                    onEnterBack?.();
+                },
+            },
+        }
+    );
 
     handleResize();
 
-    const timer =
-        new THREE.Timer();
-
-    timer.connect(document);
-
     const render = (timestamp) => {
-        if (disposed) {
+        animationFrame = 0;
+
+        if (
+            disposed ||
+            !isActive ||
+            document.hidden
+        ) {
+            previousTimestamp = null;
             return;
         }
 
-        timer.update(timestamp);
+        if (previousTimestamp === null) {
+            previousTimestamp = timestamp;
+        }
 
-        const elapsedTime =
-            timer.getElapsed();
+        const delta = Math.min(
+            (timestamp - previousTimestamp) / 1000,
+            0.05
+        );
+
+        previousTimestamp = timestamp;
+        elapsedTime += Math.max(delta, 0);
 
         updateParticleSystem(
             particleSystem,
             elapsedTime
         );
 
-        layers.forEach(
-            (layer) => {
-                layer.update?.(
-                    elapsedTime
-                );
-            }
-        );
+        layers.forEach((layer) => {
+            layer.update?.(elapsedTime);
+        });
 
-        atmospherePass
-            .uniforms
-            .uTime
-            .value =
+        atmospherePass.uniforms.uTime.value =
             elapsedTime;
 
-        renderer.setRenderTarget(
-            null
-        );
-
+        renderer.setRenderTarget(null);
         composer.render();
-
         renderer.clearDepth();
 
         if (photo || text) {
@@ -1369,33 +806,29 @@ export function createWebGLRuntime({
             );
         }
 
-        layers.forEach(
-            (layer) => {
-                if (
-                    !layer.scene ||
-                    !layer.camera
-                ) {
-                    return;
-                }
-
-                renderer.render(
-                    layer.scene,
-                    layer.camera
-                );
+        layers.forEach((layer) => {
+            if (!layer.scene || !layer.camera) {
+                return;
             }
-        );
 
-        animationFrame =
-            requestAnimationFrame(
-                render
+            renderer.render(
+                layer.scene,
+                layer.camera
             );
+        });
+
+        if (isActive && !document.hidden) {
+            animationFrame = requestAnimationFrame(render);
+        }
     };
 
-    render();
+    if (!document.hidden) {
+        animationFrame = requestAnimationFrame(render);
+    }
 
     return {
         registerLayer,
-
+        setActive,
         scene,
         camera,
         renderer,
@@ -1413,7 +846,6 @@ export function createWebGLRuntime({
                     "pointermove",
                     updatePointer
                 );
-
                 window.removeEventListener(
                     "pointermove",
                     updatePhotoHover
@@ -1425,76 +857,44 @@ export function createWebGLRuntime({
                 handleResize
             );
 
-            cancelAnimationFrame(
-                animationFrame
+            document.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange
             );
 
-            timer.dispose();
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = 0;
+            }
 
-            scrollTween
-                .scrollTrigger
-                ?.kill();
-
+            scrollTween.scrollTrigger?.kill();
             scrollTween.kill();
 
-            gsap.killTweensOf(
-                camera.rotation
-            );
-
-            gsap.killTweensOf(
-                camera.position
-            );
-
-            gsap.killTweensOf(
-                coreLight.color
-            );
+            gsap.killTweensOf(camera.rotation);
+            gsap.killTweensOf(camera.position);
+            gsap.killTweensOf(coreLight.color);
 
             if (photo) {
-                gsap.killTweensOf(
-                    photo.position
-                );
+                gsap.killTweensOf(photo.position);
             }
 
             if (photoGlow) {
-                gsap.killTweensOf(
-                    photoGlow.position
-                );
+                gsap.killTweensOf(photoGlow.position);
             }
 
             if (text) {
-                gsap.killTweensOf(
-                    text.position
-                );
+                gsap.killTweensOf(text.position);
             }
 
-            disposeObject(
-                model
-            );
-
-            disposeObject(
-                particleSystem
-            );
-
-            disposeObject(
-                particleVolumeHelper
-            );
-
-            disposePhoto(
-                photo
-            );
-
-            disposePhotoGlow(
-                photoGlow
-            );
-
-            disposeText(
-                text
-            );
+            disposeObject(model);
+            disposeObject(particleSystem);
+            disposeObject(particleVolumeHelper);
+            disposePhoto(photo);
+            disposePhotoGlow(photoGlow);
+            disposeText(text);
 
             composer.dispose();
-
             bloomPass.dispose();
-
             atmospherePass.dispose();
 
             coreLight.dispose();

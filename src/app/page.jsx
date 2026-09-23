@@ -1,7 +1,12 @@
 "use client";
 
 import ThreeScene from "@/components/scenes/Hero/ThreeScene";
-import React, { useRef } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import "./home.css";
@@ -11,16 +16,69 @@ import PcRoom from "@/components/scenes/Workspace/PcRoom";
 
 export default function Home() {
     const page = useRef(null);
+    const [heroReady, setHeroReady] =
+        useState(false);
+    const [pcRoomEnabled, setPcRoomEnabled] =
+        useState(false);
+    const [pcRoomReady, setPcRoomReady] =
+        useState(false);
 
     const handleSceneLeave = () => {
-        gsap.to(".mesh-line:nth-child(1), .mesh-line:nth-child(2)", { scaleY: 1, duration: 1.5, ease:"none" });
-        gsap.to(".mesh-cross", { opacity: 1, duration: 1.5 ,delay:.5, ease:"none" });
+        gsap.to(
+            ".mesh-line:nth-child(1), .mesh-line:nth-child(2)",
+            {
+                scaleY: 1,
+                duration: 1.5,
+                ease: "none",
+            }
+        );
+
+        gsap.to(".mesh-cross", {
+            opacity: 1,
+            duration: 1.5,
+            delay: 0.5,
+            ease: "none",
+        });
     };
 
     const handleSceneEnterBack = () => {
-        gsap.to(".mesh-line:nth-child(1), .mesh-line:nth-child(2)", { scaleY: 0, duration: .5, ease:"none" });
-        gsap.to(".mesh-cross", { opacity: 0, duration: .5, ease:"none" });
+        gsap.to(
+            ".mesh-line:nth-child(1), .mesh-line:nth-child(2)",
+            {
+                scaleY: 0,
+                duration: 0.5,
+                ease: "none",
+            }
+        );
+
+        gsap.to(".mesh-cross", {
+            opacity: 0,
+            duration: 0.5,
+            ease: "none",
+        });
     };
+
+    const handleHeroReady = useCallback(() => {
+        setHeroReady(true);
+    }, []);
+
+    const handlePcRoomReady = useCallback(
+        (result) => {
+            if (result?.status === "ready") {
+                setPcRoomReady(true);
+            }
+        },
+        []
+    );
+
+    useEffect(() => {
+        // PcRoom starts loading immediately after the first 3D scene is ready.
+        // Its IntersectionObserver only controls rendering activity; it must not
+        // delay the network/model loading until the user reaches that section.
+        if (heroReady) {
+            setPcRoomEnabled(true);
+        }
+    }, [heroReady]);
 
     useGSAP(() => {}, { scope: page });
 
@@ -36,41 +94,100 @@ export default function Home() {
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                 >
-                    <line className="mesh-line" x1="479.5" y1="800" x2="479.5" y2="0" />
-                    <line className="mesh-line" x1="959.5" y1="800" x2="959.5" y2="0" />
+                    <line
+                        className="mesh-line"
+                        x1="479.5"
+                        y1="800"
+                        x2="479.5"
+                        y2="0"
+                    />
+                    <line
+                        className="mesh-line"
+                        x1="959.5"
+                        y1="800"
+                        x2="959.5"
+                        y2="0"
+                    />
 
                     <g className="mesh-cross">
-                        <line x1="474" y1="266.5" x2="485" y2="266.5" />
-                        <line x1="479.5" y1="261" x2="479.5" y2="272" />
+                        <line
+                            x1="474"
+                            y1="266.5"
+                            x2="485"
+                            y2="266.5"
+                        />
+                        <line
+                            x1="479.5"
+                            y1="261"
+                            x2="479.5"
+                            y2="272"
+                        />
                     </g>
 
                     <g className="mesh-cross">
-                        <line x1="474" y1="533.5" x2="485" y2="533.5" />
-                        <line x1="479.5" y1="528" x2="479.5" y2="539" />
+                        <line
+                            x1="474"
+                            y1="533.5"
+                            x2="485"
+                            y2="533.5"
+                        />
+                        <line
+                            x1="479.5"
+                            y1="528"
+                            x2="479.5"
+                            y2="539"
+                        />
                     </g>
 
                     <g className="mesh-cross">
-                        <line x1="954" y1="533.5" x2="965" y2="533.5" />
-                        <line x1="959.5" y1="528" x2="959.5" y2="539" />
+                        <line
+                            x1="954"
+                            y1="533.5"
+                            x2="965"
+                            y2="533.5"
+                        />
+                        <line
+                            x1="959.5"
+                            y1="528"
+                            x2="959.5"
+                            y2="539"
+                        />
                     </g>
 
                     <g className="mesh-cross">
-                        <line x1="954" y1="266.5" x2="965" y2="266.5" />
-                        <line x1="959.5" y1="261" x2="959.5" y2="272" />
+                        <line
+                            x1="954"
+                            y1="266.5"
+                            x2="965"
+                            y2="266.5"
+                        />
+                        <line
+                            x1="959.5"
+                            y1="261"
+                            x2="959.5"
+                            y2="272"
+                        />
                     </g>
                 </svg>
             </div>
-            <div className="Bg__blur"></div>
+
+            <div className="Bg__blur" />
 
             <ThreeScene
                 onLeave={handleSceneLeave}
                 onEnterBack={handleSceneEnterBack}
+                onReady={handleHeroReady}
             />
 
-            <div className="enterAnout"></div>
+            <div className="enterAnout" />
             <About />
-            <PcRoom/>
-            <Work/>
+
+            <PcRoom
+                enabled={pcRoomEnabled}
+                onReady={handlePcRoomReady}
+            />
+
+            <Work loadImages={pcRoomReady} />
         </main>
     );
 }

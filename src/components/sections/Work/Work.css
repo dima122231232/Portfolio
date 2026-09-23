@@ -1,34 +1,44 @@
 .Work{
-    /* background-color: var(--base-200); */
-    padding:6rem 1rem;
+    position: relative;
+    perspective: 2500px;
+    padding: 6rem 1rem;
+}
+.Work__source{
+    position: relative;
+    width: 100%;
+    transform-style: preserve-3d;
 }
 .Work__wrapper{
     width: 100%;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 9.2rem;
+    transform-style: preserve-3d;
 }
-
 .Work__cell{
-    padding:var(--indent) calc( var(--indent) * 2);
+    padding: var(--indent) calc(var(--indent) * 2);
     display: flex;
     flex-direction: column;
     gap: .75rem;
+    transform-style: preserve-3d;
+    transform-origin: center center;
+    will-change: transform;
+    backface-visibility: hidden;
 }
 .Work__cell div{
-    display:flex;
+    display: flex;
     justify-content: space-between;
 }
 .Work__cell span{
     color: var(--base-0);
 }
 .Work__intro{
-    max-width:360px;
+    max-width: 360px;
     text-align: center;
     margin: 0 auto 9.2rem;
     display: flex;
     flex-direction: column;
-    gap:1.25rem;
+    gap: 1.25rem;
 }
 .Work__intro h2{
     font-family: var(--font-main);
@@ -41,19 +51,14 @@
 .Work__intro p{
     color: var(--base-100);
 }
-.Work__source{
-    position:relative;
-    width:100%;
-}
-
 
 @media (max-width: 1200px) {
-    .Work{padding:3rem 1rem;}
-    .Work__wrapper{grid-template-columns: repeat(2, 1fr);gap:3.5rem;}
+    .Work{padding: 3rem 1rem;}
+    .Work__wrapper{grid-template-columns: repeat(2, 1fr);gap: 3.5rem;}
     .Work__intro{margin: 0 auto 6.5rem;}
 }
 @media (max-width: 800px) {
-    .Work__wrapper{grid-template-columns:1fr;gap:0;}
+    .Work__wrapper{grid-template-columns: 1fr;gap: 0;}
     .Work__intro{margin: 0 auto 3.5rem;}
-    .Work__cell {padding: var(--indent);}
+    .Work__cell{padding: var(--indent);}
 }

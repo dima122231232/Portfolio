@@ -15,7 +15,7 @@ export const SCENE_CONFIG = {
     renderer: {
         antialias: true,
         maxPixelRatio: 2,
-        shadows: true,
+        shadows: false,
         toneMapping: THREE.ACESFilmicToneMapping,
         toneMappingExposure: 1,
     },
