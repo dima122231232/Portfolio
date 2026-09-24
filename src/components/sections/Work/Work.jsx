@@ -110,6 +110,7 @@ export default function Work({ loadImages = false }) {
                 root.getBoundingClientRect();
 
             const viewportHeight =
+                document.documentElement.clientHeight ||
                 window.innerHeight;
 
             const viewportCenter =

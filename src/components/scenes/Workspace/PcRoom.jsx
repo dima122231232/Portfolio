@@ -47,12 +47,17 @@ export default function PcRoom({ onReady }) {
         visibilityObserver.observe(section.current);
 
         const canvasTween = gsap.to(canvas.current, {
-            y: "35vh",
+            y: "35svh",
             ease: "none",
             scrollTrigger: {
                 trigger: section.current,
                 start: "top bottom",
-                end: `+=${window.innerHeight * 2}`,
+                end: () => {
+                    const viewportHeight =
+                        document.documentElement.clientHeight ||
+                        window.innerHeight;
+                    return `+=${viewportHeight * 2}`;
+                },
                 scrub: true,
                 invalidateOnRefresh: true,
             },

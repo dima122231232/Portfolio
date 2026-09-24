@@ -62,6 +62,15 @@ function createScene() {
     return scene;
 }
 
+function getLayoutViewportSize() {
+    const root = document.documentElement;
+
+    return {
+        width: Math.max(1, root.clientWidth || window.innerWidth),
+        height: Math.max(1, root.clientHeight || window.innerHeight),
+    };
+}
+
 function createCamera() {
     const {
         fov,
@@ -70,9 +79,11 @@ function createCamera() {
         position,
     } = PC_SCENE_CONFIG.camera;
 
+    const { width, height } = getLayoutViewportSize();
+
     const camera = new THREE.PerspectiveCamera(
         fov,
-        window.innerWidth / window.innerHeight,
+        width / height,
         near,
         far
     );
@@ -374,10 +385,13 @@ export function createFooterWebGLRuntime({
         camera
     );
 
+    const { width: initialWidth, height: initialHeight } =
+        getLayoutViewportSize();
+
     const bloomPass = new UnrealBloomPass(
         new THREE.Vector2(
-            window.innerWidth,
-            window.innerHeight
+            initialWidth,
+            initialHeight
         ),
         PC_SCENE_CONFIG.bloom.strength,
         PC_SCENE_CONFIG.bloom.radius,
@@ -530,11 +544,25 @@ export function createFooterWebGLRuntime({
         );
     }
 
+    let lastWidth = 0;
+    let lastHeight = 0;
+
     const handleResize = () => {
         const width =
-            section.clientWidth || window.innerWidth;
+            section.clientWidth || getLayoutViewportSize().width;
         const height =
-            section.clientHeight || window.innerHeight;
+            section.clientHeight || getLayoutViewportSize().height;
+
+        // The mobile browser can emit resize while its UI expands/collapses.
+        // The section uses svh, so when its real layout size is unchanged there
+        // is nothing to rebuild in the WebGL renderer.
+        if (width === lastWidth && height === lastHeight) {
+            return;
+        }
+
+        lastWidth = width;
+        lastHeight = height;
+
         const nextPixelRatio = getPixelRatio(
             quality.maxPixelRatio
         );
@@ -627,7 +655,9 @@ export function createFooterWebGLRuntime({
 
     if (
         initialRect.bottom > -200 &&
-        initialRect.top < window.innerHeight + 200 &&
+        initialRect.top <
+            (document.documentElement.clientHeight ||
+                window.innerHeight) + 200 &&
         !document.hidden
     ) {
         setActive(true);

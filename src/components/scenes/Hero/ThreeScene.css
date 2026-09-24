@@ -1,7 +1,7 @@
 .webgl-wrapper {
     position: absolute;
     width: 100%;
-    height: 400vh;
+    height: 400svh;
     pointer-events: none;
 }
 
@@ -10,7 +10,7 @@
     top:0;
     inset: 0;
     width: 100%;
-    height: 100vh;
+    height: 100svh;
     z-index: 0;
     pointer-events: none;
 }

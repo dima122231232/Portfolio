@@ -23,6 +23,22 @@ import {
 
 if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollTrigger);
+
+    // Mobile browser UI can change the visual viewport height while the
+    // layout viewport stays the same. Ignore those transient height changes
+    // so ScrollTrigger does not rebuild scroll positions while the user scrolls.
+    ScrollTrigger.config({
+        ignoreMobileResize: true,
+    });
+}
+
+function getLayoutViewportSize() {
+    const root = document.documentElement;
+
+    return {
+        width: Math.max(1, root.clientWidth || window.innerWidth),
+        height: Math.max(1, root.clientHeight || window.innerHeight),
+    };
 }
 
 function createRenderer(canvas, quality) {
@@ -55,9 +71,11 @@ function createRenderer(canvas, quality) {
         getPixelRatio(quality.maxPixelRatio)
     );
 
+    const { width, height } = getLayoutViewportSize();
+
     renderer.setSize(
-        window.innerWidth,
-        window.innerHeight,
+        width,
+        height,
         false
     );
 
@@ -104,9 +122,11 @@ function createCamera() {
         position,
     } = SCENE_CONFIG.camera;
 
+    const { width, height } = getLayoutViewportSize();
+
     const camera = new THREE.PerspectiveCamera(
         fov,
-        window.innerWidth / window.innerHeight,
+        width / height,
         near,
         far
     );
@@ -471,10 +491,13 @@ export function createWebGLRuntime({
         camera
     );
 
+    const { width: initialWidth, height: initialHeight } =
+        getLayoutViewportSize();
+
     const bloomPass = new UnrealBloomPass(
         new THREE.Vector2(
-            window.innerWidth,
-            window.innerHeight
+            initialWidth,
+            initialHeight
         ),
         SCENE_CONFIG.bloom.strength,
         SCENE_CONFIG.bloom.radius,
@@ -533,6 +556,8 @@ export function createWebGLRuntime({
     );
 
     let isPhotoHovered = false;
+    let lastLayoutWidth = 0;
+    let lastLayoutHeight = 0;
 
     const updatePointer = (event) => {
         pointer.set(
@@ -604,8 +629,21 @@ export function createWebGLRuntime({
     };
 
     const handleResize = () => {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        const { width, height } = getLayoutViewportSize();
+
+        // Ignore resize events caused only by the mobile browser UI.
+        // Rebuild the WebGL/ScrollTrigger geometry only when the actual
+        // layout viewport changed (e.g. width/orientation/desktop resize).
+        if (
+            width === lastLayoutWidth &&
+            height === lastLayoutHeight
+        ) {
+            return;
+        }
+
+        lastLayoutWidth = width;
+        lastLayoutHeight = height;
+
         const nextPixelRatio = getPixelRatio(
             quality.maxPixelRatio
         );
@@ -726,8 +764,13 @@ export function createWebGLRuntime({
             scrollTrigger: {
                 trigger: wrapper,
                 start: "top top",
-                end: () =>
-                    `+=${window.innerHeight * SCENE_CONFIG.interaction.scroll.endMultiplier}px`,
+                end: () => {
+                    const { height } = getLayoutViewportSize();
+                    return `+=${
+                        height *
+                        SCENE_CONFIG.interaction.scroll.endMultiplier
+                    }px`;
+                },
                 scrub:
                     SCENE_CONFIG.interaction.scroll.scrub,
                 invalidateOnRefresh: true,
