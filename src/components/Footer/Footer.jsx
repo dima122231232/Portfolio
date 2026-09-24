@@ -7,9 +7,12 @@ import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(ScrollTrigger);
 
+
 export default function Footer() {
 
+    
     useGSAP(() => {
+        
         const scrollTrigger = {
             trigger: ".Footer",
             start: "top 100%",
@@ -17,16 +20,18 @@ export default function Footer() {
             scrub: true
         };
 
-        gsap.fromTo(".Footer",
-            {
-                clipPath: "inset(100% 0 0 0)"
-            },
-            {
-                clipPath: "inset(0% 0 0 0)",
-                ease: "none",
-                scrollTrigger
-            }
-        );
+        if (window.innerWidth >= 800) {
+            gsap.fromTo(".Footer",
+                {
+                    clipPath: "inset(100% 0 0 0)"
+                },
+                {
+                    clipPath: "inset(0% 0 0 0)",
+                    ease: "none",
+                    scrollTrigger
+                }
+            );
+        }
 
         gsap.fromTo(".Bg__blur",
             {

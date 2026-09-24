@@ -3,19 +3,20 @@
 import React, { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useLenis } from "@/components/providers/LenisProvider";
 import "./Work.css";
-
-gsap.registerPlugin(ScrollTrigger);
 
 const CURVE_CONFIG = {
     desktop: {
         bendStart: 0.001,
         maxAngle: 14.5,
+        perspective: 1500,
     },
+
     mobile: {
         bendStart: 0.001,
         maxAngle: 14.5,
+        perspective: 1800,
     },
 };
 
@@ -39,250 +40,417 @@ const WORK_ITEMS = [
 
 export default function Work({ loadImages = false }) {
     const section = useRef(null);
+    const lenis = useLenis();
 
-    useGSAP(() => {
-        const root = section.current;
+    useGSAP(
+        () => {
+            const root = section.current;
 
-        if (!root) {
-            return undefined;
-        }
+            if (!root) {
+                return undefined;
+            }
 
-        const cells = gsap.utils.toArray(
-            ".Work__cell",
-            root
-        );
+            const cells = gsap.utils.toArray(
+                ".Work__cell",
+                root
+            );
 
-        if (!cells.length) {
-            return undefined;
-        }
+            if (!cells.length) {
+                return undefined;
+            }
 
-        const getConfig = () => {
-            return window.innerWidth < 800
-                ? CURVE_CONFIG.mobile
-                : CURVE_CONFIG.desktop;
-        };
+            const getConfig = () => {
+                const isMobile =
+                    window.matchMedia(
+                        "(max-width: 800px)"
+                    ).matches;
 
-        const items = cells.map((cell) => ({
-            element: cell,
-            top: 0,
-            height: 0,
-            setZ: gsap.quickSetter(
-                cell,
-                "z",
-                "px"
-            ),
-            setRotation: gsap.quickSetter(
-                cell,
-                "rotationX",
-                "deg"
-            ),
-        }));
+                return isMobile
+                    ? CURVE_CONFIG.mobile
+                    : CURVE_CONFIG.desktop;
+            };
 
-        let frameRequested = false;
+            const items = cells.map((cell) => ({
+                element: cell,
+                top: 0,
+                height: 0,
+            }));
 
-        const refreshMeasurements = () => {
-            const sectionRect =
-                root.getBoundingClientRect();
+            let frameRequested = false;
+            let destroyed = false;
 
-            items.forEach((item) => {
-                gsap.set(item.element, {
-                    clearProps: "transform",
+            const getViewportHeight = () => {
+                if (
+                    window.visualViewport &&
+                    window.visualViewport.height
+                ) {
+                    return window.visualViewport.height;
+                }
+
+                return window.innerHeight;
+            };
+
+            const refreshMeasurements = () => {
+                if (destroyed) {
+                    return;
+                }
+
+                const sectionRect =
+                    root.getBoundingClientRect();
+
+                items.forEach((item) => {
+                    const element = item.element;
+
+                    // Убираем старую трансформацию,
+                    // чтобы получить реальные размеры элемента.
+                    element.style.transform = "none";
+
+                    const rect =
+                        element.getBoundingClientRect();
+
+                    item.top =
+                        rect.top -
+                        sectionRect.top;
+
+                    item.height =
+                        rect.height;
                 });
+            };
 
-                const rect =
-                    item.element.getBoundingClientRect();
+            const updateCurve = () => {
+                frameRequested = false;
 
-                item.top =
-                    rect.top -
-                    sectionRect.top;
+                if (destroyed) {
+                    return;
+                }
 
-                item.height =
-                    rect.height;
-            });
-        };
+                const config = getConfig();
 
-        const updateCurve = () => {
-            frameRequested = false;
+                const sectionRect =
+                    root.getBoundingClientRect();
 
-            const config = getConfig();
+                const viewportHeight =
+                    getViewportHeight();
 
-            const sectionRect =
-                root.getBoundingClientRect();
+                const viewportCenter =
+                    viewportHeight * 0.5;
 
-            const viewportHeight =
-                document.documentElement.clientHeight ||
-                window.innerHeight;
+                const halfViewport =
+                    viewportHeight * 0.5;
 
-            const viewportCenter =
-                viewportHeight * 0.5;
+                const bendStart =
+                    viewportHeight *
+                    config.bendStart;
 
-            const halfViewport =
-                viewportHeight * 0.5;
-
-            const bendStart =
-                viewportHeight *
-                config.bendStart;
-
-            const maxArcDistance =
-                Math.max(
-                    1,
-                    halfViewport -
-                        bendStart
-                );
-
-            const maxAngle =
-                config.maxAngle *
-                (Math.PI / 180);
-
-            /**
-             * Real cylinder radius.
-             *
-             * y = R * sin(angle)
-             *
-             * Поэтому на максимальном
-             * расстоянии:
-             *
-             * R = y / sin(angle)
-             */
-            const radius =
-                maxArcDistance /
-                Math.sin(maxAngle);
-
-            items.forEach((item) => {
-                const itemCenterY =
-                    sectionRect.top +
-                    item.top +
-                    item.height * 0.5;
-
-                /**
-                 * Signed distance from
-                 * the exact viewport center.
-                 */
-                const distanceFromCenter =
-                    itemCenterY -
-                    viewportCenter;
-
-                const absoluteDistance =
-                    Math.abs(
-                        distanceFromCenter
-                    );
-
-                /**
-                 * Flat center zone.
-                 */
-                const effectiveDistance =
-                    gsap.utils.clamp(
-                        0,
-                        maxArcDistance,
-                        absoluteDistance -
+                const maxArcDistance =
+                    Math.max(
+                        1,
+                        halfViewport -
                             bendStart
                     );
 
-                /**
-                 * Convert vertical
-                 * position to exact
-                 * cylindrical angle.
-                 *
-                 * This is the important
-                 * difference from the
-                 * previous version.
-                 */
-                const angle =
-                    Math.asin(
-                        effectiveDistance /
-                            radius
+                const maxAngleRad =
+                    config.maxAngle *
+                    (Math.PI / 180);
+
+                const sinMaxAngle =
+                    Math.sin(maxAngleRad);
+
+                const radius =
+                    maxArcDistance /
+                    sinMaxAngle;
+
+                items.forEach((item) => {
+                    const itemCenterY =
+                        sectionRect.top +
+                        item.top +
+                        item.height * 0.5;
+
+                    const distanceFromCenter =
+                        itemCenterY -
+                        viewportCenter;
+
+                    const absoluteDistance =
+                        Math.abs(
+                            distanceFromCenter
+                        );
+
+                    const effectiveDistance =
+                        Math.min(
+                            maxArcDistance,
+                            Math.max(
+                                0,
+                                absoluteDistance -
+                                    bendStart
+                            )
+                        );
+
+                    const ratio =
+                        Math.min(
+                            1,
+                            Math.max(
+                                0,
+                                effectiveDistance /
+                                    radius
+                            )
+                        );
+
+                    const angle =
+                        Math.asin(ratio);
+
+                    const signedAngle =
+                        Math.sign(
+                            distanceFromCenter
+                        ) * angle;
+
+                    const z =
+                        radius *
+                        (1 - Math.cos(angle));
+
+                    const rotation =
+                        signedAngle *
+                        (180 / Math.PI);
+
+                    /*
+                     * ВАЖНО:
+                     * Не используем gsap.quickSetter("z")
+                     * и rotationX отдельно.
+                     *
+                     * Одним transform это намного
+                     * стабильнее на мобильных браузерах.
+                     *
+                     * perspective() находится прямо
+                     * внутри transform, поэтому эффект
+                     * не зависит от корректности
+                     * 3D-контекста родителя.
+                     */
+                    item.element.style.transform =
+                        `perspective(${config.perspective}px) ` +
+                        `translate3d(0, 0, ${z}px) ` +
+                        `rotateX(${rotation}deg)`;
+                });
+            };
+
+            const requestCurveUpdate = () => {
+                if (
+                    frameRequested ||
+                    destroyed
+                ) {
+                    return;
+                }
+
+                frameRequested = true;
+
+                requestAnimationFrame(
+                    updateCurve
+                );
+            };
+
+            const refreshAndUpdate = () => {
+                refreshMeasurements();
+                requestCurveUpdate();
+            };
+
+            /*
+             * Первый расчёт.
+             *
+             * Делаем два RAF:
+             * 1. ждём layout
+             * 2. ждём браузерный paint/layout после него
+             *
+             * Это особенно полезно на мобильных,
+             * когда viewport и изображения
+             * устанавливаются не сразу.
+             */
+            const firstFrame =
+                requestAnimationFrame(() => {
+                    const secondFrame =
+                        requestAnimationFrame(() => {
+                            refreshMeasurements();
+                            updateCurve();
+                        });
+
+                    cleanupRafs.push(
+                        secondFrame
                     );
+                });
 
-                const signedAngle =
-                    Math.sign(
-                        distanceFromCenter
-                    ) *
-                    angle;
+            const cleanupRafs = [firstFrame];
 
-                /**
-                 * Exact depth of the
-                 * cylindrical surface.
-                 */
-                const z =
-                    radius *
-                    (
-                        1 -
-                        Math.cos(angle)
-                    );
+            /*
+             * Обычный browser scroll.
+             *
+             * Работает независимо от ScrollTrigger.
+             */
+            window.addEventListener(
+                "scroll",
+                requestCurveUpdate,
+                {
+                    passive: true,
+                }
+            );
 
-                /**
-                 * Convert radians
-                 * to degrees.
-                 */
-                const rotation =
-                    signedAngle *
-                    (180 / Math.PI);
+            /*
+             * Lenis scroll.
+             *
+             * Это нужно для твоего проекта,
+             * потому что desktop и Android
+             * могут использовать smooth scrolling.
+             */
+            if (lenis) {
+                lenis.on(
+                    "scroll",
+                    requestCurveUpdate
+                );
+            }
 
-                item.setZ(z);
-                item.setRotation(
-                    rotation
+            /*
+             * Resize браузера.
+             */
+            window.addEventListener(
+                "resize",
+                refreshAndUpdate,
+                {
+                    passive: true,
+                }
+            );
+
+            /*
+             * Отдельно следим за visualViewport.
+             *
+             * На телефонах его высота меняется,
+             * когда появляется/исчезает адресная
+             * строка браузера.
+             */
+            const visualViewport =
+                window.visualViewport;
+
+            if (visualViewport) {
+                visualViewport.addEventListener(
+                    "resize",
+                    refreshAndUpdate,
+                    {
+                        passive: true,
+                    }
+                );
+
+                visualViewport.addEventListener(
+                    "scroll",
+                    requestCurveUpdate,
+                    {
+                        passive: true,
+                    }
+                );
+            }
+
+            /*
+             * Следим за изменениями размеров
+             * самого Work и его элементов.
+             */
+            const resizeObserver =
+                new ResizeObserver(() => {
+                    refreshAndUpdate();
+                });
+
+            resizeObserver.observe(root);
+
+            items.forEach((item) => {
+                resizeObserver.observe(
+                    item.element
                 );
             });
-        };
 
-        const requestCurveUpdate = () => {
-            if (frameRequested) {
-                return;
-            }
+            /*
+             * Дополнительно обновляем эффект,
+             * когда изображения реально загрузились.
+             *
+             * На мобильных lazy-load может происходить
+             * значительно позже первого рендера.
+             */
+            const images =
+                root.querySelectorAll("img");
 
-            frameRequested = true;
+            const handleImageLoad = () => {
+                refreshAndUpdate();
+            };
 
-            requestAnimationFrame(
-                updateCurve
-            );
-        };
-
-        refreshMeasurements();
-        updateCurve();
-
-        const scrollTrigger =
-            ScrollTrigger.create({
-                trigger: root,
-                start: "top bottom",
-                end: "bottom top",
-                invalidateOnRefresh: true,
-                onUpdate:
-                    requestCurveUpdate,
-                onRefresh: () => {
-                    refreshMeasurements();
-                    updateCurve();
-                },
+            images.forEach((image) => {
+                image.addEventListener(
+                    "load",
+                    handleImageLoad,
+                    {
+                        passive: true,
+                    }
+                );
             });
 
-        const resizeObserver =
-            new ResizeObserver(() => {
-                refreshMeasurements();
-                updateCurve();
-            });
+            return () => {
+                destroyed = true;
 
-        resizeObserver.observe(root);
+                cleanupRafs.forEach(
+                    (rafId) => {
+                        cancelAnimationFrame(
+                            rafId
+                        );
+                    }
+                );
 
-        window.addEventListener(
-            "resize",
-            requestCurveUpdate,
-            {
-                passive: true,
-            }
-        );
+                window.removeEventListener(
+                    "scroll",
+                    requestCurveUpdate
+                );
 
-        return () => {
-            resizeObserver.disconnect();
-            scrollTrigger.kill();
+                window.removeEventListener(
+                    "resize",
+                    refreshAndUpdate
+                );
 
-            window.removeEventListener(
-                "resize",
-                requestCurveUpdate
-            );
-        };
-    }, {
-        scope: section,
-        dependencies: [loadImages],
-    });
+                if (visualViewport) {
+                    visualViewport.removeEventListener(
+                        "resize",
+                        refreshAndUpdate
+                    );
+
+                    visualViewport.removeEventListener(
+                        "scroll",
+                        requestCurveUpdate
+                    );
+                }
+
+                if (lenis) {
+                    lenis.off(
+                        "scroll",
+                        requestCurveUpdate
+                    );
+                }
+
+                images.forEach((image) => {
+                    image.removeEventListener(
+                        "load",
+                        handleImageLoad
+                    );
+                });
+
+                resizeObserver.disconnect();
+
+                /*
+                 * Полностью убираем transform
+                 * при размонтировании.
+                 */
+                items.forEach((item) => {
+                    item.element.style.transform =
+                        "";
+                });
+            };
+        },
+        {
+            scope: section,
+            dependencies: [
+                loadImages,
+                lenis,
+            ],
+        }
+    );
 
     return (
         <section
@@ -300,7 +468,13 @@ export default function Work({ loadImages = false }) {
 
                 <div className="Work__wrapper">
                     {WORK_ITEMS.map(
-                        ([file, alt, title, year, ratio]) => (
+                        ([
+                            file,
+                            alt,
+                            title,
+                            year,
+                            ratio,
+                        ]) => (
                             <div
                                 className="Work__cell"
                                 key={file}
