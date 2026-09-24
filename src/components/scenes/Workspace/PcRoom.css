@@ -32,5 +32,5 @@
         pointer-events: none;
         touch-action: pan-y;
     }
-    .PcScene__canvas {transform: translateY(0vh)}
+    .PcScene__canvas {transform: translateY(-2vh)}
 }
