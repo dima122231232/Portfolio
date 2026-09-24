@@ -21,6 +21,7 @@ export default function PcRoom({ onReady }) {
         if (!section.current || !canvas.current) {
             return undefined;
         }
+
         const runtime = createFooterWebGLRuntime({
             canvas: canvas.current,
             section: section.current,
@@ -47,7 +48,9 @@ export default function PcRoom({ onReady }) {
         visibilityObserver.observe(section.current);
 
         const canvasTween = gsap.to(canvas.current, {
-            y: "35svh",
+            y: window.matchMedia("(max-width: 799px)").matches
+                ? "10svh"
+                : "35svh",
             ease: "none",
             scrollTrigger: {
                 trigger: section.current,
