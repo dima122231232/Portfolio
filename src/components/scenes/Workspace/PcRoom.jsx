@@ -49,7 +49,7 @@ export default function PcRoom({ onReady }) {
 
         const canvasTween = gsap.to(canvas.current, {
             y: window.matchMedia("(max-width: 799px)").matches
-                ? "10svh"
+                ? "0svh"
                 : "35svh",
             ease: "none",
             scrollTrigger: {
