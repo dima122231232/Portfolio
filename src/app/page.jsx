@@ -39,6 +39,9 @@ export default function Home() {
             delay: 0.5,
             ease: "none",
         });
+        gsap.set(".Info-me", {
+            opacity: 1
+        });
     };
 
     const handleSceneEnterBack = () => {
@@ -56,6 +59,10 @@ export default function Home() {
             duration: 0.5,
             ease: "none",
         });
+        gsap.to(".Info-me", {
+            opacity: 0,
+            duration:.5
+        });
     };
 
     const handleHeroReady = useCallback(() => {
@@ -72,9 +79,6 @@ export default function Home() {
     );
 
     useEffect(() => {
-        // PcRoom starts loading immediately after the first 3D scene is ready.
-        // Its IntersectionObserver only controls rendering activity; it must not
-        // delay the network/model loading until the user reaches that section.
         if (heroReady) {
             setPcRoomEnabled(true);
         }

@@ -11,7 +11,7 @@ export default function About() {
     }, []);
 
     return (
-        <div ref={section} >
+        <div ref={section} className="Info-me">
             <section className="Bio">
                 <div className="Bio__cell"></div>
                 <div className="Bio__cell"></div>
