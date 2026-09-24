@@ -24,9 +24,6 @@ import {
 if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollTrigger);
 
-    // Mobile browser UI can change the visual viewport height while the
-    // layout viewport stays the same. Ignore those transient height changes
-    // so ScrollTrigger does not rebuild scroll positions while the user scrolls.
     ScrollTrigger.config({
         ignoreMobileResize: true,
     });
@@ -34,10 +31,17 @@ if (typeof window !== "undefined") {
 
 function getLayoutViewportSize() {
     const root = document.documentElement;
+    const viewport = window.visualViewport;
 
     return {
-        width: Math.max(1, root.clientWidth || window.innerWidth),
-        height: Math.max(1, root.clientHeight || window.innerHeight),
+        width: Math.max(
+            1,
+            root.clientWidth || window.innerWidth
+        ),
+        height: Math.max(
+            1,
+            viewport?.height || window.innerHeight
+        ),
     };
 }
 
@@ -491,8 +495,10 @@ export function createWebGLRuntime({
         camera
     );
 
-    const { width: initialWidth, height: initialHeight } =
-        getLayoutViewportSize();
+    const {
+        width: initialWidth,
+        height: initialHeight,
+    } = getLayoutViewportSize();
 
     const bloomPass = new UnrealBloomPass(
         new THREE.Vector2(
@@ -629,11 +635,11 @@ export function createWebGLRuntime({
     };
 
     const handleResize = () => {
-        const { width, height } = getLayoutViewportSize();
+        const {
+            width,
+            height,
+        } = getLayoutViewportSize();
 
-        // Ignore resize events caused only by the mobile browser UI.
-        // Rebuild the WebGL/ScrollTrigger geometry only when the actual
-        // layout viewport changed (e.g. width/orientation/desktop resize).
         if (
             width === lastLayoutWidth &&
             height === lastLayoutHeight
@@ -652,12 +658,23 @@ export function createWebGLRuntime({
         camera.updateProjectionMatrix();
 
         renderer.setPixelRatio(nextPixelRatio);
-        renderer.setSize(width, height, false);
+        renderer.setSize(
+            width,
+            height,
+            false
+        );
 
         composer.setPixelRatio(nextPixelRatio);
-        composer.setSize(width, height);
+        composer.setSize(
+            width,
+            height
+        );
 
-        bloomPass.resolution.set(width, height);
+        bloomPass.resolution.set(
+            width,
+            height
+        );
+
         atmospherePass.uniforms.uGrain.value =
             SCENE_CONFIG.atmosphere.grain;
 
@@ -666,7 +683,10 @@ export function createWebGLRuntime({
         );
 
         layers.forEach((layer) => {
-            layer.resize?.(width, height);
+            layer.resize?.(
+                width,
+                height
+            );
         });
 
         ScrollTrigger.refresh();
@@ -738,6 +758,7 @@ export function createWebGLRuntime({
             "pointermove",
             updatePointer
         );
+
         window.addEventListener(
             "pointermove",
             updatePhotoHover
@@ -748,6 +769,13 @@ export function createWebGLRuntime({
         "resize",
         handleResize
     );
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener(
+            "resize",
+            handleResize
+        );
+    }
 
     document.addEventListener(
         "visibilitychange",
@@ -765,8 +793,11 @@ export function createWebGLRuntime({
                 trigger: wrapper,
                 start: "top top",
                 end: () => {
-                    const { height } = getLayoutViewportSize();
-                    return `+=${
+                    const {
+                        height,
+                    } = getLayoutViewportSize();
+
+                    return `+=${ 
                         height *
                         SCENE_CONFIG.interaction.scroll.endMultiplier
                     }px`;
@@ -840,6 +871,7 @@ export function createWebGLRuntime({
 
         renderer.setRenderTarget(null);
         composer.render();
+
         renderer.clearDepth();
 
         if (photo || text) {
@@ -860,13 +892,18 @@ export function createWebGLRuntime({
             );
         });
 
-        if (isActive && !document.hidden) {
-            animationFrame = requestAnimationFrame(render);
+        if (
+            isActive &&
+            !document.hidden
+        ) {
+            animationFrame =
+                requestAnimationFrame(render);
         }
     };
 
     if (!document.hidden) {
-        animationFrame = requestAnimationFrame(render);
+        animationFrame =
+            requestAnimationFrame(render);
     }
 
     return {
@@ -889,6 +926,7 @@ export function createWebGLRuntime({
                     "pointermove",
                     updatePointer
                 );
+
                 window.removeEventListener(
                     "pointermove",
                     updatePhotoHover
@@ -899,6 +937,13 @@ export function createWebGLRuntime({
                 "resize",
                 handleResize
             );
+
+            if (window.visualViewport) {
+                window.visualViewport.removeEventListener(
+                    "resize",
+                    handleResize
+                );
+            }
 
             document.removeEventListener(
                 "visibilitychange",
