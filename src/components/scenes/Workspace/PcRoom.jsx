@@ -25,60 +25,103 @@ export default function PcRoom({ onReady }) {
         const runtime = createFooterWebGLRuntime({
             canvas: canvas.current,
             section: section.current,
-            onReady: (result) => onReadyRef.current?.(result),
+            onReady: (result) => {
+                onReadyRef.current?.(result);
+            },
         });
 
         if (!runtime) {
             return undefined;
         }
 
-        const visibilityObserver = new IntersectionObserver(
-            ([entry]) => {
-                runtime.setActive(
-                    entry.isIntersecting && !document.hidden
-                );
-            },
-            {
-                root: null,
-                rootMargin: "3200px 0px",
-                threshold: 0,
-            }
+        const visibilityObserver =
+            new IntersectionObserver(
+                ([entry]) => {
+                    runtime.setActive(
+                        entry.isIntersecting &&
+                        !document.hidden
+                    );
+                },
+                {
+                    root: null,
+                    rootMargin: "3200px 0px",
+                    threshold: 0,
+                }
+            );
+
+        visibilityObserver.observe(
+            section.current
         );
 
-        visibilityObserver.observe(section.current);
+        const isMobile =
+            window.matchMedia(
+                "(max-width: 799px)"
+            ).matches;
 
-        const canvasTween = gsap.to(canvas.current, {
-            y: window.matchMedia("(max-width: 799px)").matches
-                ? "10svh"
-                : "35svh",
-            ease: "none",
-            scrollTrigger: {
-                trigger: section.current,
-                start: "top bottom",
-                end: () => {
-                    const viewportHeight =
-                        document.documentElement.clientHeight ||
-                        window.innerHeight;
-                    return `+=${viewportHeight * 2}`;
+        const startY = isMobile
+            ? "-10svh"
+            : "-35vh";
+
+        const endY = isMobile
+            ? "10svh"
+            : "35vh";
+
+        const canvasTween =
+            gsap.fromTo(
+                canvas.current,
+                {
+                    y: startY,
                 },
-                scrub: 0,
-                invalidateOnRefresh: true,
-            },
+                {
+                    y: endY,
+                    ease: "none",
+                    scrollTrigger: {
+                        trigger:
+                            section.current,
+                        start: "top bottom",
+                        end: () => {
+                            const height =
+                                section.current
+                                    ?.offsetHeight ||
+                                window.innerHeight;
+
+                            return `+=${height * 2}`;
+                        },
+                        scrub: true,
+                        invalidateOnRefresh: true,
+                    },
+                }
+            );
+
+        requestAnimationFrame(() => {
+            ScrollTrigger.refresh();
         });
 
         return () => {
             visibilityObserver.disconnect();
+
             canvasTween.scrollTrigger?.kill();
             canvasTween.kill();
+
             runtime.destroy();
         };
     }, []);
 
     return (
-        <section ref={section} className="PcScene">
-            <canvas ref={canvas} className="PcScene__canvas" />
+        <section
+            ref={section}
+            className="PcScene"
+        >
+            <canvas
+                ref={canvas}
+                className="PcScene__canvas"
+            />
+
             <p>
-                Good work doesn't need to be complicated. It just needs a clear idea, good execution, and attention to detail
+                Good work doesn't need to be
+                complicated. It just needs a clear
+                idea, good execution, and attention
+                to detail
             </p>
         </section>
     );
