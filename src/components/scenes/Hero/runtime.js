@@ -32,24 +32,58 @@ if (typeof window !== "undefined") {
     });
 }
 
-function getLayoutViewportSize() {
-    const root = document.documentElement;
+function getCanvasElement(canvas) {
+    return (
+        canvas?.current ??
+        canvas?.querySelector?.("canvas") ??
+        canvas
+    );
+}
+
+function getCanvasSize(canvas) {
+    const canvasElement = getCanvasElement(canvas);
+
+    if (
+        !canvasElement ||
+        typeof canvasElement.getBoundingClientRect !==
+            "function"
+    ) {
+        return {
+            width: Math.max(
+                1,
+                document.documentElement.clientWidth ||
+                    window.innerWidth
+            ),
+            height: Math.max(
+                1,
+                document.documentElement.clientHeight ||
+                    window.innerHeight
+            ),
+        };
+    }
+
+    const rect =
+        canvasElement.getBoundingClientRect();
 
     return {
-        width: Math.max(1, root.clientWidth || window.innerWidth),
-        height: Math.max(1, root.clientHeight || window.innerHeight),
+        width: Math.max(
+            1,
+            Math.round(rect.width)
+        ),
+        height: Math.max(
+            1,
+            Math.round(rect.height)
+        ),
     };
 }
 
 function createRenderer(canvas, quality) {
-    const canvasElement =
-        canvas?.current ??
-        canvas?.querySelector?.("canvas") ??
-        canvas;
+    const canvasElement = getCanvasElement(canvas);
 
     if (
         !canvasElement ||
-        typeof canvasElement.getContext !== "function"
+        typeof canvasElement.getContext !==
+            "function"
     ) {
         console.error(
             "Three.js: createRenderer expected an HTMLCanvasElement, a React ref to canvas, or an element containing a canvas."
@@ -71,7 +105,8 @@ function createRenderer(canvas, quality) {
         getPixelRatio(quality.maxPixelRatio)
     );
 
-    const { width, height } = getLayoutViewportSize();
+    const { width, height } =
+        getCanvasSize(canvasElement);
 
     renderer.setSize(
         width,
@@ -114,7 +149,7 @@ function createScene() {
     return scene;
 }
 
-function createCamera() {
+function createCamera(canvas) {
     const {
         fov,
         near,
@@ -122,7 +157,8 @@ function createCamera() {
         position,
     } = SCENE_CONFIG.camera;
 
-    const { width, height } = getLayoutViewportSize();
+    const { width, height } =
+        getCanvasSize(canvas);
 
     const camera = new THREE.PerspectiveCamera(
         fov,
@@ -157,7 +193,8 @@ function createPointLight(config) {
 }
 
 function createPhoto(onLoad) {
-    const textureLoader = new THREE.TextureLoader();
+    const textureLoader =
+        new THREE.TextureLoader();
 
     textureLoader.load(
         SCENE_CONFIG.photo.path,
@@ -169,14 +206,18 @@ function createPhoto(onLoad) {
             const aspect =
                 texture.image.width /
                 texture.image.height;
+
             const height =
                 SCENE_CONFIG.photo.height;
-            const width = height * aspect;
 
-            const geometry = new THREE.PlaneGeometry(
-                width,
-                height
-            );
+            const width =
+                height * aspect;
+
+            const geometry =
+                new THREE.PlaneGeometry(
+                    width,
+                    height
+                );
 
             const material =
                 new THREE.MeshBasicMaterial({
@@ -189,10 +230,11 @@ function createPhoto(onLoad) {
                     depthWrite: true,
                 });
 
-            const photo = new THREE.Mesh(
-                geometry,
-                material
-            );
+            const photo =
+                new THREE.Mesh(
+                    geometry,
+                    material
+                );
 
             photo.position.set(
                 SCENE_CONFIG.photo.position.x,
@@ -200,7 +242,9 @@ function createPhoto(onLoad) {
                 SCENE_CONFIG.photo.position.z
             );
 
-            photo.name = "ThreeScenePhoto";
+            photo.name =
+                "ThreeScenePhoto";
+
             onLoad(photo);
         },
         undefined,
@@ -225,13 +269,18 @@ function createPhotoGlow(photo) {
             blending: THREE.AdditiveBlending,
         });
 
-    const geometry = photo.geometry.clone();
-    const glow = new THREE.Mesh(
-        geometry,
-        material
-    );
+    const geometry =
+        photo.geometry.clone();
 
-    glow.position.copy(photo.position);
+    const glow =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+    glow.position.copy(
+        photo.position
+    );
 
     const glowScale =
         SCENE_CONFIG.photo.glow.scale;
@@ -244,13 +293,18 @@ function createPhotoGlow(photo) {
         );
     }
 
-    glow.name = "ThreeScenePhotoGlow";
+    glow.name =
+        "ThreeScenePhotoGlow";
+
     return glow;
 }
 
 function createText() {
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
+    const canvas =
+        document.createElement("canvas");
+
+    const context =
+        canvas.getContext("2d");
 
     if (!context) {
         return null;
@@ -267,47 +321,69 @@ function createText() {
         getComputedStyle(
             document.documentElement
         )
-            .getPropertyValue("--font-main")
+            .getPropertyValue(
+                "--font-main"
+            )
             .trim();
 
-    const font = `${fontWeight} ${fontSize}px ${fontFamily || "sans-serif"}`;
+    const font = `${fontWeight} ${fontSize}px ${
+        fontFamily || "sans-serif"
+    }`;
 
     context.font = font;
 
     const padding = 8;
-    const metrics = context.measureText(content);
+
+    const metrics =
+        context.measureText(content);
 
     canvas.width = Math.ceil(
-        metrics.width + padding * 2
+        metrics.width +
+            padding * 2
     );
+
     canvas.height = Math.ceil(
-        fontSize * 1.5 + padding * 2
+        fontSize * 1.5 +
+            padding * 2
     );
 
     context.font = font;
     context.fillStyle = color;
     context.textAlign = "center";
     context.textBaseline = "middle";
+
     context.fillText(
         content,
         canvas.width / 2,
         canvas.height / 2
     );
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
+    const texture =
+        new THREE.CanvasTexture(
+            canvas
+        );
 
-    const material = new THREE.SpriteMaterial({
-        map: texture,
-        transparent: true,
-        opacity: 1,
-        depthWrite: false,
-        depthTest: false,
-    });
+    texture.colorSpace =
+        THREE.SRGBColorSpace;
 
-    const text = new THREE.Sprite(material);
+    texture.minFilter =
+        THREE.LinearFilter;
+
+    texture.magFilter =
+        THREE.LinearFilter;
+
+    const material =
+        new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            opacity: 1,
+            depthWrite: false,
+            depthTest: false,
+        });
+
+    const text =
+        new THREE.Sprite(material);
+
     const scale = 0.00018;
 
     text.scale.set(
@@ -322,16 +398,21 @@ function createText() {
         SCENE_CONFIG.text.position.z
     );
 
-    text.name = "ThreeSceneText";
+    text.name =
+        "ThreeSceneText";
+
     return text;
 }
 
 function disposePhoto(photo) {
     if (!photo) return;
 
-    const material = photo.material;
+    const material =
+        photo.material;
+
     material?.map?.dispose?.();
     material?.dispose?.();
+
     photo.geometry?.dispose?.();
 }
 
@@ -361,53 +442,67 @@ function configureModel(model) {
 
         object.castShadow =
             SCENE_CONFIG.renderer.shadows;
+
         object.receiveShadow =
             SCENE_CONFIG.renderer.shadows;
 
-        const materials = Array.isArray(
-            object.material
-        )
-            ? object.material
-            : [object.material];
+        const materials =
+            Array.isArray(
+                object.material
+            )
+                ? object.material
+                : [object.material];
 
-        materials.forEach((material) => {
-            if (!material) return;
+        materials.forEach(
+            (material) => {
+                if (!material) return;
 
-            if (material.transparent) {
-                material.depthWrite = false;
+                if (material.transparent) {
+                    material.depthWrite =
+                        false;
+                }
+
+                if (material.map) {
+                    material.map.colorSpace =
+                        THREE.SRGBColorSpace;
+
+                    material.map.anisotropy =
+                        4;
+                }
+
+                const name = (
+                    material.name || ""
+                ).toLowerCase();
+
+                if (
+                    name.includes("screen") ||
+                    name.includes("monitor")
+                ) {
+                    material.roughness =
+                        0.2;
+                } else if (
+                    name.includes("metal")
+                ) {
+                    material.roughness =
+                        0.35;
+                } else if (
+                    name.includes("mirror") ||
+                    name.includes("glass")
+                ) {
+                    material.roughness =
+                        0.08;
+                } else {
+                    material.roughness =
+                        Math.max(
+                            material.roughness,
+                            0.65
+                        );
+                }
+
+                material.needsUpdate =
+                    true;
             }
-
-            if (material.map) {
-                material.map.colorSpace =
-                    THREE.SRGBColorSpace;
-                material.map.anisotropy = 4;
-            }
-
-            const name = (
-                material.name || ""
-            ).toLowerCase();
-
-            if (
-                name.includes("screen") ||
-                name.includes("monitor")
-            ) {
-                material.roughness = 0.2;
-            } else if (name.includes("metal")) {
-                material.roughness = 0.35;
-            } else if (
-                name.includes("mirror") ||
-                name.includes("glass")
-            ) {
-                material.roughness = 0.08;
-            } else {
-                material.roughness = Math.max(
-                    material.roughness,
-                    0.65
-                );
-            }
-
-            material.needsUpdate = true;
-        });
+        );
     });
 
     return model;
@@ -435,104 +530,179 @@ export function createWebGLRuntime({
     let photoGlow = null;
     let text = null;
 
-    const quality = getRenderQuality();
-    const layers = new Set();
-    const scene = createScene();
-    const photoScene = new THREE.Scene();
-    const heroGroup = new THREE.Group();
-    const camera = createCamera();
-    const renderer = createRenderer(canvas, quality);
+    const quality =
+        getRenderQuality();
+
+    const layers =
+        new Set();
+
+    const canvasElement =
+        getCanvasElement(canvas);
+
+    const scene =
+        createScene();
+
+    const photoScene =
+        new THREE.Scene();
+
+    const heroGroup =
+        new THREE.Group();
+
+    const camera =
+        createCamera(canvasElement);
+
+    const renderer =
+        createRenderer(
+            canvasElement,
+            quality
+        );
 
     if (!renderer) {
         return null;
     }
 
-    renderer.autoClear = false;
+    renderer.autoClear =
+        false;
 
     scene.add(heroGroup);
     scene.add(camera);
 
-    const mainLight = createPointLight(
-        SCENE_CONFIG.lights.main
-    );
+    const mainLight =
+        createPointLight(
+            SCENE_CONFIG.lights.main
+        );
+
     heroGroup.add(mainLight);
 
-    const sunLight = createPointLight(
-        SCENE_CONFIG.lights.sun
-    );
+    const sunLight =
+        createPointLight(
+            SCENE_CONFIG.lights.sun
+        );
+
     heroGroup.add(sunLight);
 
-    const coreLight = createPointLight(
-        SCENE_CONFIG.lights.core
-    );
+    const coreLight =
+        createPointLight(
+            SCENE_CONFIG.lights.core
+        );
+
     camera.add(coreLight);
 
-    const pixelRatio = getPixelRatio(
-        quality.maxPixelRatio
-    );
+    const pixelRatio =
+        getPixelRatio(
+            quality.maxPixelRatio
+        );
 
-    const particleSystem = createParticleSystem(
-        pixelRatio
+    const particleSystem =
+        createParticleSystem(
+            pixelRatio
+        );
+
+    heroGroup.add(
+        particleSystem
     );
-    heroGroup.add(particleSystem);
 
     const particleVolumeHelper =
         createParticleVolumeHelper();
 
     if (particleVolumeHelper) {
-        heroGroup.add(particleVolumeHelper);
+        heroGroup.add(
+            particleVolumeHelper
+        );
     }
 
-    const composer = new EffectComposer(renderer);
-    composer.setPixelRatio(pixelRatio);
+    const composer =
+        new EffectComposer(
+            renderer
+        );
 
-    const renderPass = new RenderPass(
-        scene,
-        camera
+    composer.setPixelRatio(
+        pixelRatio
     );
 
-    const { width: initialWidth, height: initialHeight } =
-        getLayoutViewportSize();
+    const renderPass =
+        new RenderPass(
+            scene,
+            camera
+        );
 
-    const bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(
-            initialWidth,
-            initialHeight
-        ),
-        SCENE_CONFIG.bloom.strength,
-        SCENE_CONFIG.bloom.radius,
-        SCENE_CONFIG.bloom.threshold
+    const {
+        width: initialWidth,
+        height: initialHeight,
+    } = getCanvasSize(
+        canvasElement
     );
 
-    const atmospherePass = createAtmospherePass(
-        SCENE_CONFIG.atmosphere,
-        quality.isMobile
+    const bloomPass =
+        new UnrealBloomPass(
+            new THREE.Vector2(
+                initialWidth,
+                initialHeight
+            ),
+            SCENE_CONFIG.bloom.strength,
+            SCENE_CONFIG.bloom.radius,
+            SCENE_CONFIG.bloom.threshold
+        );
+
+    const atmospherePass =
+        createAtmospherePass(
+            SCENE_CONFIG.atmosphere,
+            quality.isMobile
+        );
+
+    const outputPass =
+        new OutputPass();
+
+    composer.addPass(
+        renderPass
     );
 
-    const outputPass = new OutputPass();
+    composer.addPass(
+        bloomPass
+    );
 
-    composer.addPass(renderPass);
-    composer.addPass(bloomPass);
-    composer.addPass(atmospherePass);
-    composer.addPass(outputPass);
+    composer.addPass(
+        atmospherePass
+    );
 
-    createPhoto((loadedPhoto) => {
-        if (disposed) {
-            disposePhoto(loadedPhoto);
-            return;
+    composer.addPass(
+        outputPass
+    );
+
+    createPhoto(
+        (loadedPhoto) => {
+            if (disposed) {
+                disposePhoto(
+                    loadedPhoto
+                );
+
+                return;
+            }
+
+            photo = loadedPhoto;
+            photoScene.add(
+                photo
+            );
+
+            photoGlow =
+                createPhotoGlow(
+                    photo
+                );
+
+            scene.add(
+                photoGlow
+            );
+
+            text =
+                createText();
+
+            if (text) {
+                photoScene.add(
+                    text
+                );
+            }
         }
-
-        photo = loadedPhoto;
-        photoScene.add(photo);
-
-        photoGlow = createPhotoGlow(photo);
-        scene.add(photoGlow);
-
-        text = createText();
-        if (text) {
-            photoScene.add(text);
-        }
-    });
+    );
 
     const baseCameraRotation = {
         x: camera.rotation.x,
@@ -545,60 +715,136 @@ export function createWebGLRuntime({
         z: camera.position.z,
     };
 
-    const pointer = new THREE.Vector2();
-    const raycaster = new THREE.Raycaster();
+    const pointer =
+        new THREE.Vector2();
 
-    const coreDefaultColor = new THREE.Color(
-        SCENE_CONFIG.lights.core.color
-    );
-    const coreHoverColor = new THREE.Color(
-        0xba55d3
-    );
+    const raycaster =
+        new THREE.Raycaster();
 
-    let isPhotoHovered = false;
+    const coreDefaultColor =
+        new THREE.Color(
+            SCENE_CONFIG.lights.core.color
+        );
+
+    const coreHoverColor =
+        new THREE.Color(
+            0xba55d3
+        );
+
+    let isPhotoHovered =
+        false;
+
     let lastLayoutWidth = 0;
     let lastLayoutHeight = 0;
 
-    const updatePointer = (event) => {
+    const updatePointer = (
+        event
+    ) => {
+        const rect =
+            canvasElement.getBoundingClientRect();
+
+        if (
+            rect.width <= 0 ||
+            rect.height <= 0
+        ) {
+            return;
+        }
+
         pointer.set(
-            (event.clientX / window.innerWidth) * 2 - 1,
+            (
+                (event.clientX -
+                    rect.left) /
+                    rect.width
+            ) *
+                2 -
+                1,
             -(
-                (event.clientY / window.innerHeight) *
+                (
+                    (event.clientY -
+                        rect.top) /
+                    rect.height
+                ) *
                     2 -
                 1
             )
         );
 
-        gsap.to(camera.rotation, {
-            x:
-                baseCameraRotation.x +
-                pointer.y *
-                    SCENE_CONFIG.interaction.pointer.rotationX,
-            y:
-                baseCameraRotation.y -
-                pointer.x *
-                    SCENE_CONFIG.interaction.pointer.rotationY,
-            duration:
-                SCENE_CONFIG.interaction.pointer.duration,
-            ease:
-                SCENE_CONFIG.interaction.pointer.ease,
-            overwrite: true,
-        });
+        gsap.to(
+            camera.rotation,
+            {
+                x:
+                    baseCameraRotation.x +
+                    pointer.y *
+                        SCENE_CONFIG
+                            .interaction
+                            .pointer
+                            .rotationX,
+
+                y:
+                    baseCameraRotation.y -
+                    pointer.x *
+                        SCENE_CONFIG
+                            .interaction
+                            .pointer
+                            .rotationY,
+
+                duration:
+                    SCENE_CONFIG
+                        .interaction
+                        .pointer
+                        .duration,
+
+                ease:
+                    SCENE_CONFIG
+                        .interaction
+                        .pointer
+                        .ease,
+
+                overwrite:
+                    true,
+            }
+        );
     };
 
-    const updatePhotoHover = (event) => {
+    const updatePhotoHover = (
+        event
+    ) => {
         if (!photo) return;
 
-        const mouse = new THREE.Vector2(
-            (event.clientX / window.innerWidth) * 2 - 1,
-            -(
-                (event.clientY / window.innerHeight) *
-                    2 -
-                1
-            )
-        );
+        const rect =
+            canvasElement.getBoundingClientRect();
 
-        raycaster.setFromCamera(mouse, camera);
+        if (
+            rect.width <= 0 ||
+            rect.height <= 0
+        ) {
+            return;
+        }
+
+        const mouse =
+            new THREE.Vector2(
+                (
+                    (event.clientX -
+                        rect.left) /
+                        rect.width
+                ) *
+                    2 -
+                    1,
+                -(
+                    (
+                        (event.clientY -
+                            rect.top) /
+                        rect.height
+                    ) *
+                        2 -
+                    1
+                )
+            );
+
+        raycaster.setFromCamera(
+            mouse,
+            camera
+        );
 
         const hovered =
             raycaster.intersectObject(
@@ -606,116 +852,204 @@ export function createWebGLRuntime({
                 false
             ).length > 0;
 
-        if (hovered === isPhotoHovered) {
-            return;
-        }
-
-        isPhotoHovered = hovered;
-
-        gsap.to(coreLight.color, {
-            r: hovered
-                ? coreHoverColor.r
-                : coreDefaultColor.r,
-            g: hovered
-                ? coreHoverColor.g
-                : coreDefaultColor.g,
-            b: hovered
-                ? coreHoverColor.b
-                : coreDefaultColor.b,
-            duration: 0.8,
-            ease: "power2.out",
-            overwrite: true,
-        });
-    };
-
-    const handleResize = () => {
-        const { width, height } = getLayoutViewportSize();
-
-        // Ignore resize events caused only by the mobile browser UI.
-        // Rebuild the WebGL/ScrollTrigger geometry only when the actual
-        // layout viewport changed (e.g. width/orientation/desktop resize).
         if (
-            width === lastLayoutWidth &&
-            height === lastLayoutHeight
+            hovered ===
+            isPhotoHovered
         ) {
             return;
         }
 
-        lastLayoutWidth = width;
-        lastLayoutHeight = height;
+        isPhotoHovered =
+            hovered;
 
-        const nextPixelRatio = getPixelRatio(
-            quality.maxPixelRatio
+        gsap.to(
+            coreLight.color,
+            {
+                r: hovered
+                    ? coreHoverColor.r
+                    : coreDefaultColor.r,
+
+                g: hovered
+                    ? coreHoverColor.g
+                    : coreDefaultColor.g,
+
+                b: hovered
+                    ? coreHoverColor.b
+                    : coreDefaultColor.b,
+
+                duration: 0.8,
+                ease: "power2.out",
+                overwrite: true,
+            }
+        );
+    };
+
+    const handleResize = () => {
+        const {
+            width,
+            height,
+        } = getCanvasSize(
+            canvasElement
         );
 
-        camera.aspect = width / height;
+        // Resize only when the actual canvas size changed.
+        // Safari UI opening/closing should not change the canvas
+        // when it uses 100lvh.
+        if (
+            width ===
+                lastLayoutWidth &&
+            height ===
+                lastLayoutHeight
+        ) {
+            return;
+        }
+
+        lastLayoutWidth =
+            width;
+
+        lastLayoutHeight =
+            height;
+
+        const nextPixelRatio =
+            getPixelRatio(
+                quality.maxPixelRatio
+            );
+
+        camera.aspect =
+            width / height;
+
         camera.updateProjectionMatrix();
 
-        renderer.setPixelRatio(nextPixelRatio);
-        renderer.setSize(width, height, false);
-
-        composer.setPixelRatio(nextPixelRatio);
-        composer.setSize(width, height);
-
-        bloomPass.resolution.set(width, height);
-        atmospherePass.uniforms.uGrain.value =
-            SCENE_CONFIG.atmosphere.grain;
-
-        particleSystem.userData.setPixelRatio?.(
+        renderer.setPixelRatio(
             nextPixelRatio
         );
 
-        layers.forEach((layer) => {
-            layer.resize?.(width, height);
-        });
+        renderer.setSize(
+            width,
+            height,
+            false
+        );
+
+        composer.setPixelRatio(
+            nextPixelRatio
+        );
+
+        composer.setSize(
+            width,
+            height
+        );
+
+        bloomPass.resolution.set(
+            width,
+            height
+        );
+
+        atmospherePass
+            .uniforms
+            .uGrain.value =
+            SCENE_CONFIG
+                .atmosphere
+                .grain;
+
+        particleSystem
+            .userData
+            .setPixelRatio?.(
+                nextPixelRatio
+            );
+
+        layers.forEach(
+            (layer) => {
+                layer.resize?.(
+                    width,
+                    height
+                );
+            }
+        );
 
         ScrollTrigger.refresh();
     };
 
-    const registerLayer = (layer) => {
-        layers.add(layer);
+    const registerLayer = (
+        layer
+    ) => {
+        layers.add(
+            layer
+        );
 
         return () => {
-            layers.delete(layer);
+            layers.delete(
+                layer
+            );
         };
     };
 
-    const setActive = (active) => {
+    const setActive = (
+        active
+    ) => {
         isActive = active;
 
-        if (!isActive || document.hidden) {
-            previousTimestamp = null;
+        if (
+            !isActive ||
+            document.hidden
+        ) {
+            previousTimestamp =
+                null;
 
-            if (animationFrame) {
-                cancelAnimationFrame(animationFrame);
-                animationFrame = 0;
+            if (
+                animationFrame
+            ) {
+                cancelAnimationFrame(
+                    animationFrame
+                );
+
+                animationFrame =
+                    0;
             }
 
             return;
         }
 
         if (!animationFrame) {
-            animationFrame = requestAnimationFrame(render);
+            animationFrame =
+                requestAnimationFrame(
+                    render
+                );
         }
     };
 
-    const handleVisibilityChange = () => {
-        setActive(isActive);
-    };
+    const handleVisibilityChange =
+        () => {
+            setActive(
+                isActive
+            );
+        };
 
-    const loader = new GLTFLoader();
+    const loader =
+        new GLTFLoader();
 
     loader.load(
         SCENE_CONFIG.model.path,
         (gltf) => {
             if (disposed) {
-                disposeObject(gltf.scene);
+                disposeObject(
+                    gltf.scene
+                );
+
                 return;
             }
 
-            model = configureModel(gltf.scene);
-            heroGroup.add(model);
-            onReady?.({ status: "ready" });
+            model =
+                configureModel(
+                    gltf.scene
+                );
+
+            heroGroup.add(
+                model
+            );
+
+            onReady?.({
+                status: "ready",
+            });
         },
         undefined,
         (error) => {
@@ -731,13 +1065,15 @@ export function createWebGLRuntime({
         }
     );
 
-    const isTouchDevice = quality.isMobile;
+    const isTouchDevice =
+        quality.isMobile;
 
     if (!isTouchDevice) {
         window.addEventListener(
             "pointermove",
             updatePointer
         );
+
         window.addEventListener(
             "pointermove",
             updatePhotoHover
@@ -754,55 +1090,92 @@ export function createWebGLRuntime({
         handleVisibilityChange
     );
 
-    const scrollTween = gsap.to(
-        camera.position,
-        {
-            z:
-                baseCameraPosition.z +
-                SCENE_CONFIG.interaction.scroll.cameraZ,
-            ease: "none",
-            scrollTrigger: {
-                trigger: wrapper,
-                start: "top top",
-                end: () => {
-                    const { height } = getLayoutViewportSize();
-                    return `+=${
-                        height *
-                        SCENE_CONFIG.interaction.scroll.endMultiplier
-                    }px`;
+    const scrollTween =
+        gsap.to(
+            camera.position,
+            {
+                z:
+                    baseCameraPosition.z +
+                    SCENE_CONFIG
+                        .interaction
+                        .scroll
+                        .cameraZ,
+
+                ease: "none",
+
+                scrollTrigger: {
+                    trigger: wrapper,
+
+                    start: "top top",
+
+                    end: () => {
+                        const {
+                            height,
+                        } =
+                            getCanvasSize(
+                                canvasElement
+                            );
+
+                        return `+=${
+                            height *
+                            SCENE_CONFIG
+                                .interaction
+                                .scroll
+                                .endMultiplier
+                        }px`;
+                    },
+
+                    scrub:
+                        SCENE_CONFIG
+                            .interaction
+                            .scroll
+                            .scrub,
+
+                    invalidateOnRefresh:
+                        true,
+
+                    onLeave: () => {
+                        setActive(
+                            false
+                        );
+
+                        gsap.to(
+                            ".webgl-section",
+                            {
+                                opacity: 0,
+                                duration: 0.5,
+                                ease: "none",
+                            }
+                        );
+
+                        onLeave?.();
+                    },
+
+                    onEnterBack: () => {
+                        setActive(
+                            true
+                        );
+
+                        gsap.to(
+                            ".webgl-section",
+                            {
+                                opacity: 1,
+                                duration: 0.2,
+                                ease: "none",
+                            }
+                        );
+
+                        onEnterBack?.();
+                    },
                 },
-                scrub:
-                    SCENE_CONFIG.interaction.scroll.scrub,
-                invalidateOnRefresh: true,
-                onLeave: () => {
-                    setActive(false);
-
-                    gsap.to(".webgl-section", {
-                        opacity: 0,
-                        duration: 0.5,
-                        ease: "none",
-                    });
-
-                    onLeave?.();
-                },
-                onEnterBack: () => {
-                    setActive(true);
-
-                    gsap.to(".webgl-section", {
-                        opacity: 1,
-                        duration: 0.2,
-                        ease: "none",
-                    });
-
-                    onEnterBack?.();
-                },
-            },
-        }
-    );
+            }
+        );
 
     handleResize();
 
-    const render = (timestamp) => {
+    const render = (
+        timestamp
+    ) => {
         animationFrame = 0;
 
         if (
@@ -810,63 +1183,107 @@ export function createWebGLRuntime({
             !isActive ||
             document.hidden
         ) {
-            previousTimestamp = null;
+            previousTimestamp =
+                null;
+
             return;
         }
 
-        if (previousTimestamp === null) {
-            previousTimestamp = timestamp;
+        if (
+            previousTimestamp ===
+            null
+        ) {
+            previousTimestamp =
+                timestamp;
         }
 
-        const delta = Math.min(
-            (timestamp - previousTimestamp) / 1000,
-            0.05
-        );
+        const delta =
+            Math.min(
+                (
+                    timestamp -
+                    previousTimestamp
+                ) /
+                    1000,
+                0.05
+            );
 
-        previousTimestamp = timestamp;
-        elapsedTime += Math.max(delta, 0);
+        previousTimestamp =
+            timestamp;
+
+        elapsedTime +=
+            Math.max(
+                delta,
+                0
+            );
 
         updateParticleSystem(
             particleSystem,
             elapsedTime
         );
 
-        layers.forEach((layer) => {
-            layer.update?.(elapsedTime);
-        });
+        layers.forEach(
+            (layer) => {
+                layer.update?.(
+                    elapsedTime
+                );
+            }
+        );
 
-        atmospherePass.uniforms.uTime.value =
+        atmospherePass
+            .uniforms
+            .uTime.value =
             elapsedTime;
 
-        renderer.setRenderTarget(null);
+        renderer.setRenderTarget(
+            null
+        );
+
         composer.render();
+
         renderer.clearDepth();
 
-        if (photo || text) {
+        if (
+            photo ||
+            text
+        ) {
             renderer.render(
                 photoScene,
                 camera
             );
         }
 
-        layers.forEach((layer) => {
-            if (!layer.scene || !layer.camera) {
-                return;
+        layers.forEach(
+            (layer) => {
+                if (
+                    !layer.scene ||
+                    !layer.camera
+                ) {
+                    return;
+                }
+
+                renderer.render(
+                    layer.scene,
+                    layer.camera
+                );
             }
+        );
 
-            renderer.render(
-                layer.scene,
-                layer.camera
-            );
-        });
-
-        if (isActive && !document.hidden) {
-            animationFrame = requestAnimationFrame(render);
+        if (
+            isActive &&
+            !document.hidden
+        ) {
+            animationFrame =
+                requestAnimationFrame(
+                    render
+                );
         }
     };
 
     if (!document.hidden) {
-        animationFrame = requestAnimationFrame(render);
+        animationFrame =
+            requestAnimationFrame(
+                render
+            );
     }
 
     return {
@@ -889,6 +1306,7 @@ export function createWebGLRuntime({
                     "pointermove",
                     updatePointer
                 );
+
                 window.removeEventListener(
                     "pointermove",
                     updatePhotoHover
@@ -905,36 +1323,76 @@ export function createWebGLRuntime({
                 handleVisibilityChange
             );
 
-            if (animationFrame) {
-                cancelAnimationFrame(animationFrame);
-                animationFrame = 0;
+            if (
+                animationFrame
+            ) {
+                cancelAnimationFrame(
+                    animationFrame
+                );
+
+                animationFrame =
+                    0;
             }
 
-            scrollTween.scrollTrigger?.kill();
+            scrollTween
+                .scrollTrigger
+                ?.kill();
+
             scrollTween.kill();
 
-            gsap.killTweensOf(camera.rotation);
-            gsap.killTweensOf(camera.position);
-            gsap.killTweensOf(coreLight.color);
+            gsap.killTweensOf(
+                camera.rotation
+            );
+
+            gsap.killTweensOf(
+                camera.position
+            );
+
+            gsap.killTweensOf(
+                coreLight.color
+            );
 
             if (photo) {
-                gsap.killTweensOf(photo.position);
+                gsap.killTweensOf(
+                    photo.position
+                );
             }
 
             if (photoGlow) {
-                gsap.killTweensOf(photoGlow.position);
+                gsap.killTweensOf(
+                    photoGlow.position
+                );
             }
 
             if (text) {
-                gsap.killTweensOf(text.position);
+                gsap.killTweensOf(
+                    text.position
+                );
             }
 
-            disposeObject(model);
-            disposeObject(particleSystem);
-            disposeObject(particleVolumeHelper);
-            disposePhoto(photo);
-            disposePhotoGlow(photoGlow);
-            disposeText(text);
+            disposeObject(
+                model
+            );
+
+            disposeObject(
+                particleSystem
+            );
+
+            disposeObject(
+                particleVolumeHelper
+            );
+
+            disposePhoto(
+                photo
+            );
+
+            disposePhotoGlow(
+                photoGlow
+            );
+
+            disposeText(
+                text
+            );
 
             composer.dispose();
             bloomPass.dispose();
