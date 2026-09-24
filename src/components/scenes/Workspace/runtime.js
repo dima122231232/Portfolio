@@ -354,7 +354,7 @@ export function createFooterWebGLRuntime({
     const sunLight = createPointLight(
         PC_SCENE_CONFIG.lights.sun
     );
-    sunLight.castShadow = true;
+    sunLight.castShadow = !quality.isMobile;
     sunLight.shadow.mapSize.set(
         quality.workspaceShadowMapSize,
         quality.workspaceShadowMapSize

@@ -1,5 +1,9 @@
 import * as THREE from "three";
 
+const isMobile =
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 800px)").matches;
+
 export const SCENE_CONFIG = {
     camera: {
         fov: 45,
@@ -136,7 +140,7 @@ export const SCENE_CONFIG = {
 
     particles: {
         far: {
-            count: 500,
+            count: isMobile ? 100 : 500,
             size: 0.05,
             opacity: 0.5,
             speed: 0.045,
@@ -146,7 +150,7 @@ export const SCENE_CONFIG = {
         },
 
         mid: {
-            count: 50,
+            count: isMobile ? 30 : 50,
             size: 0.11,
             opacity: 0.4,
             speed: 0.125,
@@ -156,7 +160,7 @@ export const SCENE_CONFIG = {
         },
 
         near: {
-            count: 200,
+            count: isMobile ? 60 : 200,
             size: 0.24,
             opacity: 0.3,
             speed: 0.15,

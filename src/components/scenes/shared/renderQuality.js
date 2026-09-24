@@ -9,10 +9,9 @@ export function getRenderQuality() {
 
     return {
         isMobile,
-        maxPixelRatio: isMobile ? 1.25 : 1.75,
-        // Keep MSAA on mobile: the small DPR reduction is cheaper visually than jagged geometry edges.
-        antialias: true,
-        workspaceShadowMapSize: isMobile ? 768 : 1024,
+        maxPixelRatio: isMobile ? 1 : 1.75,
+        antialias: !isMobile,
+        workspaceShadowMapSize: isMobile ? 512 : 1024,
     };
 }
 
