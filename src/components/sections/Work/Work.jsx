@@ -10,16 +10,12 @@ gsap.registerPlugin(ScrollTrigger);
 
 const CURVE_CONFIG = {
     desktop: {
-        depth: 125,
-        rotation: 15,
-        duration: 0.01,
-        ease: "none",
+        bendStart: 0.001,
+        maxAngle: 14.5,
     },
     mobile: {
-        depth:65,
-        rotation: 20,
-        duration: 0.01,
-        ease: "none",
+        bendStart: 0.001,
+        maxAngle: 14.5,
     },
 };
 
@@ -33,9 +29,12 @@ const WORK_ITEMS = [
     ["7.png", "Fullest wellness website", "Fullest", "2026", "1200 / 675"],
     ["8.png", "Tech DEV website", "Tech DEV", "2026", "1200 / 675"],
     ["9.png", "Personal portfolio website", "Portfolio (OLD)", "2024", "1200 / 675"],
-    ["10.png", "Evgeni Kozyhov portfolio website", "Evgeni Kozyhov", "2022", "1200 / 1000"],
-    ["11.png", "Portfolio website", "Portfolio (NOT me)", "2026", "1200 / 675"],
-    ["12.png", "AXION website", "AXION", "2026", "1200 / 1000"],
+    ["10.png", "a. a.", "a. a.", "2026", "1200 / 675"],
+    ["11.png", "Utopic game studio", "Utopic", "2026", "1200 / 675"],
+    ["12.png", "Nocode ddc", "Nocode ddc", "2022", "1200 / 675"],
+    ["13.png", "Evgeni Kozyhov portfolio website", "Evgeni Kozyhov", "2022", "1200 / 1000"],
+    ["14.png", "Portfolio website", "Portfolio (NOT me)", "2026", "1200 / 675"],
+    ["15.png", "AXION website", "AXION", "2026", "1200 / 1000"],
 ];
 
 export default function Work({ loadImages = false }) {
@@ -57,29 +56,29 @@ export default function Work({ loadImages = false }) {
             return undefined;
         }
 
-        const getCurveConfig = () => {
+        const getConfig = () => {
             return window.innerWidth < 800
                 ? CURVE_CONFIG.mobile
                 : CURVE_CONFIG.desktop;
         };
 
-        const config = getCurveConfig();
-
         const items = cells.map((cell) => ({
             element: cell,
             top: 0,
             height: 0,
-            z: gsap.quickTo(cell, "z", {
-                duration: config.duration,
-                ease: config.ease,
-            }),
-            rotationX: gsap.quickTo(cell, "rotationX", {
-                duration: config.duration,
-                ease: config.ease,
-            }),
+            setZ: gsap.quickSetter(
+                cell,
+                "z",
+                "px"
+            ),
+            setRotation: gsap.quickSetter(
+                cell,
+                "rotationX",
+                "deg"
+            ),
         }));
 
-        let scheduled = false;
+        let frameRequested = false;
 
         const refreshMeasurements = () => {
             const sectionRect =
@@ -94,70 +93,151 @@ export default function Work({ loadImages = false }) {
                     item.element.getBoundingClientRect();
 
                 item.top =
-                    rect.top - sectionRect.top;
-                item.height = rect.height;
+                    rect.top -
+                    sectionRect.top;
+
+                item.height =
+                    rect.height;
             });
         };
 
-        const updateCurveNow = () => {
-            scheduled = false;
+        const updateCurve = () => {
+            frameRequested = false;
 
-            const config = getCurveConfig();
+            const config = getConfig();
 
             const sectionRect =
                 root.getBoundingClientRect();
 
-            const centerY =
-                window.innerHeight * 0.5;
+            const viewportHeight =
+                window.innerHeight;
 
-            const halfHeight =
-                centerY || 1;
+            const viewportCenter =
+                viewportHeight * 0.5;
+
+            const halfViewport =
+                viewportHeight * 0.5;
+
+            const bendStart =
+                viewportHeight *
+                config.bendStart;
+
+            const maxArcDistance =
+                Math.max(
+                    1,
+                    halfViewport -
+                        bendStart
+                );
+
+            const maxAngle =
+                config.maxAngle *
+                (Math.PI / 180);
+
+            /**
+             * Real cylinder radius.
+             *
+             * y = R * sin(angle)
+             *
+             * Поэтому на максимальном
+             * расстоянии:
+             *
+             * R = y / sin(angle)
+             */
+            const radius =
+                maxArcDistance /
+                Math.sin(maxAngle);
 
             items.forEach((item) => {
                 const itemCenterY =
                     sectionRect.top +
                     item.top +
-                    item.height * 0.25;
+                    item.height * 0.5;
 
-                const normalized =
-                    gsap.utils.clamp(
-                        -1,
-                        1,
-                        (itemCenterY - centerY) /
-                            halfHeight
+                /**
+                 * Signed distance from
+                 * the exact viewport center.
+                 */
+                const distanceFromCenter =
+                    itemCenterY -
+                    viewportCenter;
+
+                const absoluteDistance =
+                    Math.abs(
+                        distanceFromCenter
                     );
 
-                const distance =
-                    Math.abs(normalized);
+                /**
+                 * Flat center zone.
+                 */
+                const effectiveDistance =
+                    gsap.utils.clamp(
+                        0,
+                        maxArcDistance,
+                        absoluteDistance -
+                            bendStart
+                    );
 
-                const depth =
-                    distance *
-                    distance *
-                    config.depth;
+                /**
+                 * Convert vertical
+                 * position to exact
+                 * cylindrical angle.
+                 *
+                 * This is the important
+                 * difference from the
+                 * previous version.
+                 */
+                const angle =
+                    Math.asin(
+                        effectiveDistance /
+                            radius
+                    );
 
+                const signedAngle =
+                    Math.sign(
+                        distanceFromCenter
+                    ) *
+                    angle;
+
+                /**
+                 * Exact depth of the
+                 * cylindrical surface.
+                 */
+                const z =
+                    radius *
+                    (
+                        1 -
+                        Math.cos(angle)
+                    );
+
+                /**
+                 * Convert radians
+                 * to degrees.
+                 */
                 const rotation =
-                    normalized *
-                    config.rotation;
+                    signedAngle *
+                    (180 / Math.PI);
 
-                item.z(depth);
-                item.rotationX(rotation);
+                item.setZ(z);
+                item.setRotation(
+                    rotation
+                );
             });
         };
 
-        const updateCurve = () => {
-            if (scheduled) {
+        const requestCurveUpdate = () => {
+            if (frameRequested) {
                 return;
             }
 
-            scheduled = true;
+            frameRequested = true;
 
             requestAnimationFrame(
-                updateCurveNow
+                updateCurve
             );
         };
 
         refreshMeasurements();
-        updateCurveNow();
+        updateCurve();
 
         const scrollTrigger =
             ScrollTrigger.create({
@@ -165,10 +245,11 @@ export default function Work({ loadImages = false }) {
                 start: "top bottom",
                 end: "bottom top",
                 invalidateOnRefresh: true,
-                onUpdate: updateCurve,
+                onUpdate:
+                    requestCurveUpdate,
                 onRefresh: () => {
                     refreshMeasurements();
-                    updateCurveNow();
+                    updateCurve();
                 },
             });
 
@@ -176,15 +257,16 @@ export default function Work({ loadImages = false }) {
             new ResizeObserver(() => {
                 refreshMeasurements();
                 updateCurve();
-                ScrollTrigger.refresh();
             });
 
         resizeObserver.observe(root);
 
         window.addEventListener(
             "resize",
-            updateCurve,
-            { passive: true }
+            requestCurveUpdate,
+            {
+                passive: true,
+            }
         );
 
         return () => {
@@ -193,7 +275,7 @@ export default function Work({ loadImages = false }) {
 
             window.removeEventListener(
                 "resize",
-                updateCurve
+                requestCurveUpdate
             );
         };
     }, {
@@ -202,10 +284,14 @@ export default function Work({ loadImages = false }) {
     });
 
     return (
-        <section className="Work" ref={section}>
+        <section
+            className="Work"
+            ref={section}
+        >
             <div className="Work__source">
                 <div className="Work__intro">
                     <h2>MY BEST WORK</h2>
+
                     <p>
                         A collection of projects created entirely by me. Unfortunately, most of my strongest work was developed collaboratively and remains confidential due to NDA agreements. Has developed more than 50 websites
                     </p>
@@ -228,13 +314,19 @@ export default function Work({ loadImages = false }) {
                                     loading="lazy"
                                     decoding="async"
                                     style={{
-                                        aspectRatio: ratio,
+                                        aspectRatio:
+                                            ratio,
                                     }}
                                 />
 
                                 <div>
-                                    <span>{title}</span>
-                                    <span>{year}</span>
+                                    <span>
+                                        {title}
+                                    </span>
+
+                                    <span>
+                                        {year}
+                                    </span>
                                 </div>
                             </div>
                         )

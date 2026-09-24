@@ -43,5 +43,5 @@
     .Header__item{gap:.25rem;}
 }
 @media (max-width: 800px) {
-    .Header__content{display: none;}
+    .Header{display: none;}
 }

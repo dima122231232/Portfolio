@@ -30,8 +30,8 @@ export const PC_SCENE_CONFIG = {
 
         position: {
             x: -1,
-            y: -1.5,
-            z: -9,
+            y: -2,
+            z: -8,
         },
 
         rotation: {

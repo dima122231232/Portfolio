@@ -589,11 +589,11 @@ export function createFooterWebGLRuntime({
 
         currentRotation.x +=
             (targetRotation.x - currentRotation.x) *
-            0.004;
+            0.06;
 
         currentRotation.y +=
             (targetRotation.y - currentRotation.y) *
-            0.002;
+            0.004;
 
         camera.rotation.x = currentRotation.x;
         camera.rotation.y = currentRotation.y;

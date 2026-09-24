@@ -1,7 +1,7 @@
 .PcScene {
     position: relative;
     width: 100%;
-    height: 135svh;
+    height: 100vh;
     overflow: hidden;
     background: #fff4d2;
 }
@@ -12,7 +12,7 @@
     width: 100%;
     height: 100%;
     display: block;
-    transform: translateY(-50svh);
+    transform: translateY(-35vh);
 }
 .PcScene p{
     position: absolute;
