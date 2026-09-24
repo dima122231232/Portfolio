@@ -14,7 +14,7 @@
     z-index: 0;
     pointer-events: none;
 }
-@media (max-width: 2500px) {
+@media (max-width: 800px) {
     .webgl-wrapper{position: relative;height: 100vh;}
 
 }

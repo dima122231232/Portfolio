@@ -10,8 +10,9 @@
     position: absolute;
     inset: 0;
     width: 100%;
-    height: 100%;
+    height: 110svh;
     display: block;
+    margin-top:-5svh;
 }
 
 .PcScene p {
