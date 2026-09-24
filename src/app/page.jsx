@@ -39,9 +39,9 @@ export default function Home() {
             delay: 0.5,
             ease: "none",
         });
-        gsap.set(".Info-me", {
-            opacity: 1
-        });
+        // gsap.set(".Info-me", {
+        //     opacity: 1
+        // });
     };
 
     const handleSceneEnterBack = () => {
@@ -59,10 +59,10 @@ export default function Home() {
             duration: 0.5,
             ease: "none",
         });
-        gsap.to(".Info-me", {
-            opacity: 0,
-            duration:.5
-        });
+        // gsap.to(".Info-me", {
+        //     opacity: 0,
+        //     duration:.5
+        // });
     };
 
     const handleHeroReady = useCallback(() => {

@@ -25,7 +25,7 @@
 .enterAnout{
     height: 105svh;
 }
-.Info-me{opacity: 0;}
+/* .Info-me{opacity: 0;} */
 .About{
     height:66svh;
     width:100%;
@@ -255,5 +255,5 @@
     .About__cell:nth-child(3){grid-area: auto;}
 
     .Approach{height:auto;grid-template-columns:1fr;grid-template-rows:none;}
-    .enterAnout{height:135svh;}
+    .enterAnout{height:0svh;}
 }
