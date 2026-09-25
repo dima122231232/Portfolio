@@ -65,11 +65,11 @@ export default function PcRoom({ onReady, onProgress }) {
 
         const startY = isMobile
             ? "-20svh"
-            : "-5vh";
+            : "-2vh";
 
         const endY = isMobile
             ? "20svh"
-            : "5vh";
+            : "2vh";
 
         const canvasTween =
             gsap.fromTo(

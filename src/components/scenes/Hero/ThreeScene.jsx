@@ -19,18 +19,7 @@ export default function ThreeScene({
     const onReadyRef = useRef(onReady);
     const onProgressRef = useRef(onProgress);
 
-    /*
-     * ==========================================
-     * НАСТРОЙКА АНИМАЦИИ ОТНОСИТЕЛЬНО PRELOADER
-     * ==========================================
-     *
-     * 300  = начать за 300ms до конца
-     * 200  = начать за 200ms до конца
-     * 100  = начать за 100ms до конца
-     * 0    = начать ровно после окончания
-     * -200 = начать через 200ms после окончания
-     */
-    const PRELOADER_OFFSET = 200;
+    const PRELOADER_OFFSET = 50;
 
     useEffect(() => {
         onLeaveRef.current = onLeave;
@@ -85,20 +74,7 @@ export default function ThreeScene({
             if (!endAt) {
                 return;
             }
-
-            /*
-             * endAt = момент полного окончания
-             * исчезновения Preloader.
-             *
-             * Например:
-             *
-             * endAt = через 650ms
-             * offset = 300ms
-             *
-             * значит запускаем через:
-             *
-             * 650 - 300 = 350ms
-             */
+            
             const delay =
                 Math.max(
                     0,
