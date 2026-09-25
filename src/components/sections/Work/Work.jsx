@@ -9,14 +9,14 @@ import "./Work.css";
 const CURVE_CONFIG = {
     desktop: {
         bendStart: 0.001,
-        maxAngle: 14.5,
-        perspective: 1500,
+        maxAngle: 12.5,
+        perspective: 5000,
     },
 
     mobile: {
         bendStart: 0.001,
         maxAngle: 14.5,
-        perspective: 1800,
+        perspective: 2500,
     },
 };
 

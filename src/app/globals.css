@@ -20,7 +20,11 @@
 
 *{margin: 0;padding: 0;box-sizing: border-box;-webkit-tap-highlight-color: transparent;}
 body{overflow-x: hidden;font-family: var(--font-main);background-color: var(--base-150);}
-
+html,
+body {
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+}
 img{
   width: 100%;
   object-fit: cover;
