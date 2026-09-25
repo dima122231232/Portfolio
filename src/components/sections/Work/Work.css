@@ -28,6 +28,7 @@
     will-change: transform;
     backface-visibility: hidden;
 }
+.Work__cell img{background-color: #888;}
 
 .Work__cell div {
     display: flex;

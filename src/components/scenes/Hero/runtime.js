@@ -761,7 +761,7 @@ export function createWebGLRuntime({
     );
 
     const scrollHeightMultiplier =
-        window.innerWidth < 800 ? 3 : 1;
+        window.innerWidth < 800 ? 3.5 : 1;
     
     const scrollTween = gsap.to(
         camera.position,

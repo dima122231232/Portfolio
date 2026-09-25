@@ -16,7 +16,7 @@ const CURVE_CONFIG = {
     mobile: {
         bendStart: 0.001,
         maxAngle: 14.5,
-        perspective: 1800,
+        perspective: 1500,
     },
 };
 
@@ -485,7 +485,7 @@ export default function Work({ loadImages = false }) {
                                             ? `/img/work/${file}`
                                             : undefined
                                     }
-                                    alt={alt}
+                                    // alt={alt}
                                     loading="lazy"
                                     decoding="async"
                                     style={{
