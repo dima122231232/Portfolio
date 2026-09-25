@@ -41,8 +41,11 @@ function createRenderer(canvas, quality) {
     renderer.toneMappingExposure =
         PC_SCENE_CONFIG.renderer.toneMappingExposure;
 
-    renderer.shadowMap.enabled =
-        PC_SCENE_CONFIG.renderer.shadows;
+    const shadowsEnabled =
+        PC_SCENE_CONFIG.renderer.shadows &&
+        !quality.isMobile;
+
+    renderer.shadowMap.enabled = shadowsEnabled;
 
     if (renderer.shadowMap.enabled) {
         renderer.shadowMap.type =
@@ -113,7 +116,7 @@ function createPointLight(config) {
     return light;
 }
 
-function configureModel(model) {
+function configureModel(model, shadowsEnabled) {
     const {
         position,
         rotation,
@@ -136,10 +139,8 @@ function configureModel(model) {
             return;
         }
 
-        object.castShadow =
-            PC_SCENE_CONFIG.renderer.shadows;
-        object.receiveShadow =
-            PC_SCENE_CONFIG.renderer.shadows;
+        object.castShadow = shadowsEnabled;
+        object.receiveShadow = shadowsEnabled;
 
         const materials = Array.isArray(
             object.material
@@ -337,30 +338,40 @@ export function createFooterWebGLRuntime({
         return null;
     }
 
+    const shadowsEnabled =
+        PC_SCENE_CONFIG.renderer.shadows &&
+        !quality.isMobile;
+
     scene.add(camera);
 
     const mainLight = createPointLight(
         PC_SCENE_CONFIG.lights.main
     );
-    mainLight.castShadow = true;
-    mainLight.shadow.mapSize.set(
-        quality.workspaceShadowMapSize,
-        quality.workspaceShadowMapSize
-    );
-    mainLight.shadow.bias = -0.0004;
-    mainLight.shadow.normalBias = 0.015;
+    mainLight.castShadow = shadowsEnabled;
+
+    if (shadowsEnabled) {
+        mainLight.shadow.mapSize.set(
+            quality.workspaceShadowMapSize,
+            quality.workspaceShadowMapSize
+        );
+        mainLight.shadow.bias = -0.0004;
+        mainLight.shadow.normalBias = 0.015;
+    }
     scene.add(mainLight);
 
     const sunLight = createPointLight(
         PC_SCENE_CONFIG.lights.sun
     );
-    sunLight.castShadow = !quality.isMobile;
-    sunLight.shadow.mapSize.set(
-        quality.workspaceShadowMapSize,
-        quality.workspaceShadowMapSize
-    );
-    sunLight.shadow.bias = -0.0004;
-    sunLight.shadow.normalBias = 0.015;
+    sunLight.castShadow = shadowsEnabled;
+
+    if (shadowsEnabled) {
+        sunLight.shadow.mapSize.set(
+            quality.workspaceShadowMapSize,
+            quality.workspaceShadowMapSize
+        );
+        sunLight.shadow.bias = -0.0004;
+        sunLight.shadow.normalBias = 0.015;
+    }
     scene.add(sunLight);
 
     const skyLight = createPointLight(
@@ -373,12 +384,12 @@ export function createFooterWebGLRuntime({
     );
     camera.add(crtLight);
 
-    const pixelRatio = getPixelRatio(
-        quality.maxPixelRatio
+    const composerPixelRatio = getPixelRatio(
+        quality.composerMaxPixelRatio
     );
 
     const composer = new EffectComposer(renderer);
-    composer.setPixelRatio(pixelRatio);
+    composer.setPixelRatio(composerPixelRatio);
 
     const renderPass = new RenderPass(
         scene,
@@ -443,12 +454,15 @@ export function createFooterWebGLRuntime({
                 return;
             }
 
-            model = configureModel(gltf.scene);
+            model = configureModel(
+                gltf.scene,
+                shadowsEnabled
+            );
             scene.add(model);
 
             mergeTask = mergeStaticMeshesAsync(model, {
-                castShadow: PC_SCENE_CONFIG.renderer.shadows,
-                receiveShadow: PC_SCENE_CONFIG.renderer.shadows,
+                castShadow: shadowsEnabled,
+                receiveShadow: shadowsEnabled,
             });
 
             let resolveWarmup;
@@ -566,6 +580,9 @@ export function createFooterWebGLRuntime({
         const nextPixelRatio = getPixelRatio(
             quality.maxPixelRatio
         );
+        const nextComposerPixelRatio = getPixelRatio(
+            quality.composerMaxPixelRatio
+        );
 
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
@@ -573,7 +590,7 @@ export function createFooterWebGLRuntime({
         renderer.setPixelRatio(nextPixelRatio);
         renderer.setSize(width, height, false);
 
-        composer.setPixelRatio(nextPixelRatio);
+        composer.setPixelRatio(nextComposerPixelRatio);
         composer.setSize(width, height);
 
         bloomPass.resolution.set(width, height);

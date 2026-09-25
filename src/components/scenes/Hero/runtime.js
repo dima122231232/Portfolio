@@ -484,7 +484,10 @@ export function createWebGLRuntime({
     }
 
     const composer = new EffectComposer(renderer);
-    composer.setPixelRatio(pixelRatio);
+    const composerPixelRatio = getPixelRatio(
+        quality.composerMaxPixelRatio
+    );
+    composer.setPixelRatio(composerPixelRatio);
 
     const renderPass = new RenderPass(
         scene,
@@ -647,6 +650,9 @@ export function createWebGLRuntime({
         const nextPixelRatio = getPixelRatio(
             quality.maxPixelRatio
         );
+        const nextComposerPixelRatio = getPixelRatio(
+            quality.composerMaxPixelRatio
+        );
 
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
@@ -654,7 +660,7 @@ export function createWebGLRuntime({
         renderer.setPixelRatio(nextPixelRatio);
         renderer.setSize(width, height, false);
 
-        composer.setPixelRatio(nextPixelRatio);
+        composer.setPixelRatio(nextComposerPixelRatio);
         composer.setSize(width, height);
 
         bloomPass.resolution.set(width, height);

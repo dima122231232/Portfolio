@@ -10,6 +10,7 @@ export function getRenderQuality() {
     return {
         isMobile,
         maxPixelRatio: isMobile ? 1 : 1.75,
+        composerMaxPixelRatio: isMobile ? 0.75 : 1.75,
         antialias: !isMobile,
         workspaceShadowMapSize: isMobile ? 512 : 1024,
     };
