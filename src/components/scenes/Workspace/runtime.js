@@ -404,50 +404,42 @@ export function createFooterWebGLRuntime({
     );
     camera.add(crtLight);
 
-    let composer = null;
-    let renderPass = null;
-    let bloomPass = null;
-    let atmospherePass = null;
-    let outputPass = null;
+    const composerPixelRatio = getPixelRatio(
+        quality.composerMaxPixelRatio
+    );
 
-    if (!quality.isMobile) {
-        const composerPixelRatio = getPixelRatio(
-            quality.composerMaxPixelRatio
-        );
+    const composer = new EffectComposer(renderer);
+    composer.setPixelRatio(composerPixelRatio);
 
-        composer = new EffectComposer(renderer);
-        composer.setPixelRatio(composerPixelRatio);
+    const renderPass = new RenderPass(
+        scene,
+        camera
+    );
 
-        renderPass = new RenderPass(
-            scene,
-            camera
-        );
+    const { width: initialWidth, height: initialHeight } =
+        getLayoutViewportSize();
 
-        const { width: initialWidth, height: initialHeight } =
-            getLayoutViewportSize();
+    const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(
+            initialWidth,
+            initialHeight
+        ),
+        PC_SCENE_CONFIG.bloom.strength,
+        PC_SCENE_CONFIG.bloom.radius,
+        PC_SCENE_CONFIG.bloom.threshold
+    );
 
-        bloomPass = new UnrealBloomPass(
-            new THREE.Vector2(
-                initialWidth,
-                initialHeight
-            ),
-            PC_SCENE_CONFIG.bloom.strength,
-            PC_SCENE_CONFIG.bloom.radius,
-            PC_SCENE_CONFIG.bloom.threshold
-        );
+    const atmospherePass = createAtmospherePass(
+        PC_SCENE_CONFIG.atmosphere,
+        quality.isMobile
+    );
 
-        atmospherePass = createAtmospherePass(
-            PC_SCENE_CONFIG.atmosphere,
-            false
-        );
+    const outputPass = new OutputPass();
 
-        outputPass = new OutputPass();
-
-        composer.addPass(renderPass);
-        composer.addPass(bloomPass);
-        composer.addPass(atmospherePass);
-        composer.addPass(outputPass);
-    }
+    composer.addPass(renderPass);
+    composer.addPass(bloomPass);
+    composer.addPass(atmospherePass);
+    composer.addPass(outputPass);
 
     const setActive = (active) => {
         isActive = Boolean(active);
@@ -490,52 +482,40 @@ export function createFooterWebGLRuntime({
             );
             scene.add(model);
 
-            if (quality.isMobile) {
-                mergeTask = {
-                    promise: Promise.resolve(),
-                    cancel() {},
-                };
-            } else {
-                mergeTask = mergeStaticMeshesAsync(model, {
-                    castShadow: shadowsEnabled,
-                    receiveShadow: shadowsEnabled,
-                });
-            }
+            mergeTask = mergeStaticMeshesAsync(model, {
+                castShadow: shadowsEnabled,
+                receiveShadow: shadowsEnabled,
+            });
 
-            if (quality.isMobile) {
-                warmupPromise = Promise.resolve();
-                warmupCancel = () => {};
-            } else {
-                let resolveWarmup;
+            let resolveWarmup;
 
-                warmupPromise = new Promise((resolve) => {
-                    resolveWarmup = resolve;
-                });
+            warmupPromise = new Promise((resolve) => {
+                resolveWarmup = resolve;
+            });
 
-                warmupCancel = scheduleIdleTask(
-                    async () => {
-                        try {
-                            if (!disposed && model) {
-                                await warmupRenderer(
-                                    renderer,
-                                    scene,
-                                    camera,
-                                    model,
-                                    false
-                                );
-                            }
-                        } catch (error) {
-                            console.warn(
-                                "Three.js: PcRoom warm-up skipped.",
-                                error
+            warmupCancel = scheduleIdleTask(
+                async () => {
+                    try {
+                        if (!disposed && model) {
+                            await warmupRenderer(
+                                renderer,
+                                scene,
+                                camera,
+                                model,
+                                quality.isMobile
                             );
-                        } finally {
-                            resolveWarmup?.();
                         }
-                    },
-                    { timeout: 2500 }
-                );
-            }
+                    } catch (error) {
+                        console.warn(
+                            "Three.js: PcRoom warm-up skipped.",
+                            error
+                        );
+                    } finally {
+                        resolveWarmup?.();
+                    }
+                },
+                { timeout: 2500 }
+            );
 
             Promise.all([
                 mergeTask.promise,
@@ -630,6 +610,9 @@ export function createFooterWebGLRuntime({
         const nextPixelRatio = getPixelRatio(
             quality.maxPixelRatio
         );
+        const nextComposerPixelRatio = getPixelRatio(
+            quality.composerMaxPixelRatio
+        );
 
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
@@ -637,16 +620,10 @@ export function createFooterWebGLRuntime({
         renderer.setPixelRatio(nextPixelRatio);
         renderer.setSize(width, height, false);
 
-        if (composer) {
-            const nextComposerPixelRatio = getPixelRatio(
-                quality.composerMaxPixelRatio
-            );
+        composer.setPixelRatio(nextComposerPixelRatio);
+        composer.setSize(width, height);
 
-            composer.setPixelRatio(nextComposerPixelRatio);
-            composer.setSize(width, height);
-
-            bloomPass?.resolution.set(width, height);
-        }
+        bloomPass.resolution.set(width, height);
     };
 
     window.addEventListener(
@@ -696,14 +673,10 @@ export function createFooterWebGLRuntime({
         camera.rotation.x = currentRotation.x;
         camera.rotation.y = currentRotation.y;
 
-        if (quality.isMobile) {
-            renderer.render(scene, camera);
-        } else {
-            atmospherePass.uniforms.uTime.value =
-                elapsedTime;
+        atmospherePass.uniforms.uTime.value =
+            elapsedTime;
 
-            composer.render();
-        }
+        composer.render();
 
         updateCallbacks.forEach((callback) => {
             callback({
@@ -796,10 +769,10 @@ export function createFooterWebGLRuntime({
 
             disposeObject(model);
 
-            composer?.dispose();
-            bloomPass?.dispose();
-            atmospherePass?.dispose();
-            outputPass?.dispose();
+            composer.dispose();
+            bloomPass.dispose();
+            atmospherePass.dispose();
+            outputPass.dispose();
 
             renderer.dispose();
             scene.clear();
