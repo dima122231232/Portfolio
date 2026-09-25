@@ -16,10 +16,21 @@
     --accent-100: #4B527A;
 }
 
+::selection {
+  background: var(--base-0);
+  color:var(--base-150); 
+}
 
+::-moz-selection {
+  background: var(--base-0);
+  color:var(--base-150); 
+}
+
+::-webkit-scrollbar {width: 0;height: 0;}
 
 *{margin: 0;padding: 0;box-sizing: border-box;-webkit-tap-highlight-color: transparent;}
 body{overflow-x: hidden;font-family: var(--font-main);background-color: var(--base-150);}
+
 html,
 body {
     overscroll-behavior: none;

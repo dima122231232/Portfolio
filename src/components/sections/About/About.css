@@ -254,6 +254,6 @@
     .About{height:auto;grid-template-columns:1fr;grid-template-rows:none;margin: 6.5rem 0;}
     .About__cell:nth-child(3){grid-area: auto;}
 
-    .Approach{height:auto;grid-template-columns:1fr;grid-template-rows:none;}
+    .Approach{height:auto;grid-template-columns:1fr;grid-template-rows:none;margin:0;}
     .enterAnout{height:0svh;}
 }
