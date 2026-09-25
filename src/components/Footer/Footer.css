@@ -83,6 +83,6 @@
 
 @media (max-width: 800px) {
     .Footer , .Footer__links{flex-direction: column;height: auto;}
-    .Footer{border-bottom: 1px solid rgba(255, 255, 255, .1);clip-path: inset(0 0 0 0);}
+    .Footer{border-bottom: 1px solid rgba(255, 255, 255, .1);clip-path: inset(0 0 0 0);gap: 3rem;}
     
 }

@@ -42,7 +42,7 @@ export default function Footer() {
             {
                 opacity: 1,
                 backdropFilter:" blur(4px)",
-                scale: 1.5,
+                scale: 1.35,
                 ease: "none",
                 scrollTrigger: {
                     ...scrollTrigger

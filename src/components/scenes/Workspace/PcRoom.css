@@ -32,10 +32,10 @@
         left: var(--indent);
     }
     .PcScene{
-        height:80svh;
+        height:70svh;
     }
     .PcScene__canvas{
-        height:90svh;
+        height:80svh;
     }
 
     .PcScene__canvas {
