@@ -169,36 +169,28 @@ export default function Work({ loadImages = true, onImagesProgress }) {
                 return undefined;
             }
 
-            const getConfig = () => {
-                const isMobile =
-                    window.matchMedia(
-                        "(max-width: 800px)"
-                    ).matches;
+            const isMobile = window.matchMedia(
+                "(max-width: 800px)"
+            ).matches;
 
-                return isMobile
-                    ? CURVE_CONFIG.mobile
-                    : CURVE_CONFIG.desktop;
-            };
+            const config = isMobile
+                ? CURVE_CONFIG.mobile
+                : CURVE_CONFIG.desktop;
 
-            const items = cells.map((cell) => ({
-                element: cell,
+            const items = cells.map((element) => ({
+                element,
                 top: 0,
                 height: 0,
             }));
 
-            let frameRequested = false;
             let destroyed = false;
 
-            const getViewportHeight = () => {
-                if (
-                    window.visualViewport &&
-                    window.visualViewport.height
-                ) {
-                    return window.visualViewport.height;
-                }
-
-                return window.innerHeight;
-            };
+            const getViewportHeight = () =>
+                Math.max(
+                    1,
+                    document.documentElement.clientHeight ||
+                        window.innerHeight
+                );
 
             const refreshMeasurements = () => {
                 if (destroyed) {
@@ -211,8 +203,7 @@ export default function Work({ loadImages = true, onImagesProgress }) {
                 items.forEach((item) => {
                     const element = item.element;
 
-                    // Убираем старую трансформацию,
-                    // чтобы получить реальные размеры элемента.
+                    // Read geometry without the previous transform.
                     element.style.transform = "none";
 
                     const rect =
@@ -228,13 +219,9 @@ export default function Work({ loadImages = true, onImagesProgress }) {
             };
 
             const updateCurve = () => {
-                frameRequested = false;
-
                 if (destroyed) {
                     return;
                 }
-
-                const config = getConfig();
 
                 const sectionRect =
                     root.getBoundingClientRect();
@@ -321,19 +308,6 @@ export default function Work({ loadImages = true, onImagesProgress }) {
                         signedAngle *
                         (180 / Math.PI);
 
-                    /*
-                     * ВАЖНО:
-                     * Не используем gsap.quickSetter("z")
-                     * и rotationX отдельно.
-                     *
-                     * Одним transform это намного
-                     * стабильнее на мобильных браузерах.
-                     *
-                     * perspective() находится прямо
-                     * внутри transform, поэтому эффект
-                     * не зависит от корректности
-                     * 3D-контекста родителя.
-                     */
                     item.element.style.transform =
                         `perspective(${config.perspective}px) ` +
                         `translate3d(0, 0, ${z}px) ` +
@@ -341,126 +315,33 @@ export default function Work({ loadImages = true, onImagesProgress }) {
                 });
             };
 
-            const requestCurveUpdate = () => {
-                if (
-                    frameRequested ||
-                    destroyed
-                ) {
-                    return;
-                }
-
-                frameRequested = true;
-
-                requestAnimationFrame(
-                    updateCurve
-                );
-            };
-
             const refreshAndUpdate = () => {
                 refreshMeasurements();
-                requestCurveUpdate();
+                updateCurve();
             };
 
             /*
-             * Первый расчёт.
-             *
-             * Делаем два RAF:
-             * 1. ждём layout
-             * 2. ждём браузерный paint/layout после него
-             *
-             * Это особенно полезно на мобильных,
-             * когда viewport и изображения
-             * устанавливаются не сразу.
-             */
-            const firstFrame =
-                requestAnimationFrame(() => {
-                    const secondFrame =
-                        requestAnimationFrame(() => {
-                            refreshMeasurements();
-                            updateCurve();
-                        });
-
-                    cleanupRafs.push(
-                        secondFrame
-                    );
-                });
-
-            const cleanupRafs = [firstFrame];
-
-            /*
-             * Обычный browser scroll.
-             *
-             * Работает независимо от ScrollTrigger.
-             */
-            window.addEventListener(
-                "scroll",
-                requestCurveUpdate,
-                {
-                    passive: true,
-                }
-            );
-
-            /*
-             * Lenis scroll.
-             *
-             * Это нужно для твоего проекта,
-             * потому что desktop и Android
-             * могут использовать smooth scrolling.
+             * Lenis emits once per rendered scroll frame.
+             * Use that event directly so the curve follows the exact same
+             * interpolation frame instead of adding another RAF hop.
              */
             if (lenis) {
                 lenis.on(
                     "scroll",
-                    requestCurveUpdate
+                    updateCurve
                 );
             }
 
-            /*
-             * Resize браузера.
-             */
             window.addEventListener(
                 "resize",
                 refreshAndUpdate,
-                {
-                    passive: true,
-                }
+                { passive: true }
             );
 
-            /*
-             * Отдельно следим за visualViewport.
-             *
-             * На телефонах его высота меняется,
-             * когда появляется/исчезает адресная
-             * строка браузера.
-             */
-            const visualViewport =
-                window.visualViewport;
-
-            if (visualViewport) {
-                visualViewport.addEventListener(
-                    "resize",
-                    refreshAndUpdate,
-                    {
-                        passive: true,
-                    }
-                );
-
-                visualViewport.addEventListener(
-                    "scroll",
-                    requestCurveUpdate,
-                    {
-                        passive: true,
-                    }
-                );
-            }
-
-            /*
-             * Следим за изменениями размеров
-             * самого Work и его элементов.
-             */
             const resizeObserver =
-                new ResizeObserver(() => {
-                    refreshAndUpdate();
-                });
+                new ResizeObserver(
+                    refreshAndUpdate
+                );
 
             resizeObserver.observe(root);
 
@@ -470,44 +351,16 @@ export default function Work({ loadImages = true, onImagesProgress }) {
                 );
             });
 
-            /*
-             * Дополнительно обновляем эффект,
-             * когда изображения реально загрузились.
-             *
-             * На мобильных lazy-load может происходить
-             * значительно позже первого рендера.
-             */
-            const images =
-                root.querySelectorAll("img");
-
-            const handleImageLoad = () => {
-                refreshAndUpdate();
-            };
-
-            images.forEach((image) => {
-                image.addEventListener(
-                    "load",
-                    handleImageLoad,
-                    {
-                        passive: true,
-                    }
+            const firstFrame =
+                requestAnimationFrame(
+                    refreshAndUpdate
                 );
-            });
 
             return () => {
                 destroyed = true;
 
-                cleanupRafs.forEach(
-                    (rafId) => {
-                        cancelAnimationFrame(
-                            rafId
-                        );
-                    }
-                );
-
-                window.removeEventListener(
-                    "scroll",
-                    requestCurveUpdate
+                cancelAnimationFrame(
+                    firstFrame
                 );
 
                 window.removeEventListener(
@@ -515,38 +368,15 @@ export default function Work({ loadImages = true, onImagesProgress }) {
                     refreshAndUpdate
                 );
 
-                if (visualViewport) {
-                    visualViewport.removeEventListener(
-                        "resize",
-                        refreshAndUpdate
-                    );
-
-                    visualViewport.removeEventListener(
-                        "scroll",
-                        requestCurveUpdate
-                    );
-                }
+                resizeObserver.disconnect();
 
                 if (lenis) {
                     lenis.off(
                         "scroll",
-                        requestCurveUpdate
+                        updateCurve
                     );
                 }
 
-                images.forEach((image) => {
-                    image.removeEventListener(
-                        "load",
-                        handleImageLoad
-                    );
-                });
-
-                resizeObserver.disconnect();
-
-                /*
-                 * Полностью убираем transform
-                 * при размонтировании.
-                 */
                 items.forEach((item) => {
                     item.element.style.transform =
                         "";

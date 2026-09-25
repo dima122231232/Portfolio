@@ -1,97 +1,91 @@
-
-
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import Lenis from "lenis";
+import { useEffect } from "react";
+import { ReactLenis, useLenis as useLenisInstance } from "lenis/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const LenisContext = createContext(null);
+ScrollTrigger.config({
+    ignoreMobileResize: true,
+});
 
-export const useLenis = () => useContext(LenisContext);
+const LENIS_OPTIONS = {
+    autoRaf: false,
+    autoResize: true,
+    autoToggle: true,
 
-export default function LenisProvider({ children }) {
-  const [lenis, setLenis] = useState(null);
+    smoothWheel: true,
 
-  useEffect(() => {
-    const ua = navigator.userAgent;
+    syncTouch: true,
+    syncTouchLerp: 0.075,
+    touchInertiaExponent: 1.7,
+    touchMultiplier: 1,
 
-    const isIOS = /iPhone|iPad|iPod/.test(ua);
-    const isAndroid = /Android/.test(ua);
-    const isTouch = "ontouchstart" in window;
+    wheelMultiplier: 1,
 
-    const options = {
-      autoRaf: false,
+    direction: "vertical",
+    gestureDirection: "vertical",
 
-      duration: 1.2,
+    anchors: true,
+    stopInertiaOnNavigate: true,
 
-      easing: isTouch
-        ? (t) => 1 - Math.pow(1 - t, 5)
-        : (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    respectReducedMotion: true,
+    overscroll: true,
+};
 
-      smoothWheel: true,
+export const useLenis = useLenisInstance;
 
-      smoothTouch: isIOS ? false : true,
-      syncTouch: isIOS ? false : true,
+function LenisGSAPSync({ children }) {
+    const lenis = useLenisInstance();
 
-      touchMultiplier: isAndroid ? 1.2 : 1,
-
-      wheelMultiplier: 1,
-
-      anchors: true,
-    };
-
-    const instance = new Lenis(options);
-
-    setLenis(instance);
-
-    instance.on("scroll", ScrollTrigger.update);
-
-    const update = (time) => {
-      instance.raf(time * 1000);
-    };
-
-    gsap.ticker.add(update);
-    gsap.ticker.lagSmoothing(0);
-
-    ScrollTrigger.scrollerProxy(document.body, {
-      scrollTop(value) {
-        if (arguments.length) {
-          instance.scrollTo(value, {
-            immediate: true,
-          });
+    useEffect(() => {
+        if (!lenis) {
+            return undefined;
         }
 
-        return instance.scroll;
-      },
-
-      getBoundingClientRect() {
-        return {
-          top: 0,
-          left: 0,
-          width: window.innerWidth,
-          height: window.innerHeight,
+        const update = (time) => {
+            lenis.raf(time * 1000);
         };
-      },
-    });
 
-    ScrollTrigger.refresh();
+        const updateScrollTrigger = () => {
+            ScrollTrigger.update();
+        };
 
-    return () => {
-      gsap.ticker.remove(update);
+        lenis.on(
+            "scroll",
+            updateScrollTrigger
+        );
 
-      instance.destroy();
+        gsap.ticker.add(update);
+        gsap.ticker.lagSmoothing(0);
 
-      setLenis(null);
-    };
-  }, []);
+        const refreshFrame = requestAnimationFrame(() => {
+            ScrollTrigger.refresh();
+        });
 
-  return (
-    <LenisContext.Provider value={lenis}>
-      {children}
-    </LenisContext.Provider>
-  );
+        return () => {
+            lenis.off(
+                "scroll",
+                updateScrollTrigger
+            );
+
+            gsap.ticker.remove(update);
+            cancelAnimationFrame(refreshFrame);
+        };
+    }, [lenis]);
+
+    return children;
+}
+
+export default function LenisProvider({ children }) {
+    return (
+        <ReactLenis
+            root
+            options={LENIS_OPTIONS}
+        >
+            <LenisGSAPSync>{children}</LenisGSAPSync>
+        </ReactLenis>
+    );
 }
