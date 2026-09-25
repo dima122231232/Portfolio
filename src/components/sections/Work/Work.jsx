@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { useLenis } from "@/components/providers/LenisProvider";
 import "./Work.css";
+import { WORK_ITEMS } from "./workData";
 
 const CURVE_CONFIG = {
     desktop: {
@@ -20,27 +21,136 @@ const CURVE_CONFIG = {
     },
 };
 
-const WORK_ITEMS = [
-    ["1.png", "Travis Scott fan website", "Fan Travis Scott", "2024", "1200 / 675"],
-    ["2.png", "DeSIRE website", "DeSIRE", "2026", "1200 / 675"],
-    ["3.png", "Chapter Three website", "Chapter Three", "2023", "1200 / 675"],
-    ["4.png", "Fly a. a. website", "Fly a. a.", "2024", "1200 / 675"],
-    ["5.png", "Europlanet website", "Europlanet", "2025", "1200 / 675"],
-    ["6.png", "Java Matcha website", "Java Matcha", "2024", "1200 / 675"],
-    ["7.png", "Fullest wellness website", "Fullest", "2026", "1200 / 675"],
-    ["8.png", "Tech DEV website", "Tech DEV", "2026", "1200 / 675"],
-    ["9.png", "Personal portfolio website", "Portfolio (OLD)", "2024", "1200 / 675"],
-    ["10.png", "a. a.", "a. a.", "2026", "1200 / 675"],
-    ["11.png", "Utopic game studio", "Utopic", "2026", "1200 / 675"],
-    ["12.png", "Nocode ddc", "Nocode ddc", "2022", "1200 / 675"],
-    ["13.png", "Evgeni Kozyhov portfolio website", "Evgeni Kozyhov", "2022", "1200 / 1000"],
-    ["14.png", "Portfolio website", "Portfolio (NOT me)", "2026", "1200 / 675"],
-    ["15.png", "AXION website", "AXION", "2026", "1200 / 1000"],
-];
 
-export default function Work({ loadImages = false }) {
+export default function Work({ loadImages = true, onImagesProgress }) {
     const section = useRef(null);
     const lenis = useLenis();
+    const onImagesProgressRef = useRef(onImagesProgress);
+
+    useEffect(() => {
+        onImagesProgressRef.current = onImagesProgress;
+    }, [onImagesProgress]);
+
+    useEffect(() => {
+        if (!loadImages) {
+            return undefined;
+        }
+
+        const root = section.current;
+
+        if (!root) {
+            return undefined;
+        }
+
+        const images = Array.from(
+            root.querySelectorAll("img[data-work-image]")
+        );
+
+        if (!images.length) {
+            onImagesProgressRef.current?.(1);
+            return undefined;
+        }
+
+        let completed = 0;
+        let destroyed = false;
+        const settled = new WeakSet();
+        const handlers = new Map();
+
+        const reportComplete = (image) => {
+            if (
+                destroyed ||
+                settled.has(image)
+            ) {
+                return;
+            }
+
+            settled.add(image);
+            completed += 1;
+
+            onImagesProgressRef.current?.(
+                completed / images.length
+            );
+        };
+
+        const finishFromEvent = (image) => {
+            if (
+                destroyed ||
+                settled.has(image)
+            ) {
+                return;
+            }
+
+            const decodePromise =
+                typeof image.decode === "function"
+                    ? image.decode()
+                    : Promise.resolve();
+
+            Promise.resolve(decodePromise)
+                .catch(() => {})
+                .finally(() => {
+                    reportComplete(image);
+                });
+        };
+
+        onImagesProgressRef.current?.(0);
+
+        images.forEach((image) => {
+            const handleLoad = () => {
+                finishFromEvent(image);
+            };
+
+            const handleError = () => {
+                // A failed image is treated as complete so the global
+                // preloader can never get stuck on one broken asset.
+                reportComplete(image);
+            };
+
+            handlers.set(image, {
+                handleLoad,
+                handleError,
+            });
+
+            image.addEventListener(
+                "load",
+                handleLoad,
+                { passive: true }
+            );
+
+            image.addEventListener(
+                "error",
+                handleError,
+                { passive: true }
+            );
+
+            if (image.complete) {
+                if (image.naturalWidth > 0) {
+                    finishFromEvent(image);
+                } else {
+                    reportComplete(image);
+                }
+            }
+        });
+
+        return () => {
+            destroyed = true;
+
+            handlers.forEach(
+                ({ handleLoad, handleError }, image) => {
+                    image.removeEventListener(
+                        "load",
+                        handleLoad
+                    );
+
+                    image.removeEventListener(
+                        "error",
+                        handleError
+                    );
+                }
+            );
+
+            handlers.clear();
+        };
+    }, [loadImages]);
 
     useGSAP(
         () => {
@@ -485,9 +595,14 @@ export default function Work({ loadImages = false }) {
                                             ? `/img/work/${file}`
                                             : undefined
                                     }
-                                    // alt={alt}
-                                    loading="lazy"
+                                    alt={alt}
+                                    loading={
+                                        loadImages
+                                            ? "eager"
+                                            : "lazy"
+                                    }
                                     decoding="async"
+                                    data-work-image="true"
                                     style={{
                                         aspectRatio:
                                             ratio,

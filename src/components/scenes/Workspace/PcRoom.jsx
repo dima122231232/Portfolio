@@ -8,14 +8,16 @@ import "./PcRoom.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
-export default function PcRoom({ onReady }) {
+export default function PcRoom({ onReady, onProgress }) {
     const section = useRef(null);
     const canvas = useRef(null);
     const onReadyRef = useRef(onReady);
+    const onProgressRef = useRef(onProgress);
 
     useEffect(() => {
         onReadyRef.current = onReady;
-    }, [onReady]);
+        onProgressRef.current = onProgress;
+    }, [onReady, onProgress]);
 
     useEffect(() => {
         if (!section.current || !canvas.current) {
@@ -27,6 +29,9 @@ export default function PcRoom({ onReady }) {
             section: section.current,
             onReady: (result) => {
                 onReadyRef.current?.(result);
+            },
+            onProgress: (value) => {
+                onProgressRef.current?.(value);
             },
         });
 

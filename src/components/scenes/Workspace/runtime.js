@@ -313,6 +313,7 @@ export function createFooterWebGLRuntime({
     canvas,
     section,
     onReady,
+    onProgress,
 }) {
     if (!canvas || !section) {
         return null;
@@ -337,6 +338,25 @@ export function createFooterWebGLRuntime({
     if (!renderer) {
         return null;
     }
+
+    const loadingManager = new THREE.LoadingManager();
+
+    loadingManager.onProgress = (
+        _url,
+        itemsLoaded,
+        itemsTotal
+    ) => {
+        const fileProgress =
+            itemsTotal > 0
+                ? itemsLoaded / itemsTotal
+                : 0;
+
+        // LoadingManager can discover nested GLTF textures later, so keep
+        // the file-loading phase below the final ready state.
+        onProgress?.(Math.min(fileProgress * 0.8, 0.8));
+    };
+
+    onProgress?.(0);
 
     const shadowsEnabled =
         PC_SCENE_CONFIG.renderer.shadows &&
@@ -444,7 +464,9 @@ export function createFooterWebGLRuntime({
         setActive(isActive);
     };
 
-    const loader = new GLTFLoader();
+    const loader = new GLTFLoader(
+        loadingManager
+    );
 
     loader.load(
         PC_SCENE_CONFIG.model.path,
@@ -503,6 +525,8 @@ export function createFooterWebGLRuntime({
                     return;
                 }
 
+                onProgress?.(1);
+
                 onReady?.({
                     status: "ready",
                 });
@@ -515,12 +539,18 @@ export function createFooterWebGLRuntime({
                 error
             );
 
+            onProgress?.(1);
+
             onReady?.({
                 status: "error",
                 error,
             });
         }
     );
+
+    loadingManager.onLoad = () => {
+        onProgress?.(0.92);
+    };
 
     const pointer = new THREE.Vector2();
     const targetRotation = {

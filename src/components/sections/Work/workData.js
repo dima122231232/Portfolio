@@ -1,0 +1,17 @@
+export const WORK_ITEMS = [
+    ["1.png", "Travis Scott fan website", "Fan Travis Scott", "2024", "1200 / 675"],
+    ["2.png", "DeSIRE website", "DeSIRE", "2026", "1200 / 675"],
+    ["3.png", "Chapter Three website", "Chapter Three", "2023", "1200 / 675"],
+    ["4.png", "Fly a. a. website", "Fly a. a.", "2024", "1200 / 675"],
+    ["5.png", "Europlanet website", "Europlanet", "2025", "1200 / 675"],
+    ["6.png", "Java Matcha website", "Java Matcha", "2024", "1200 / 675"],
+    ["7.png", "Fullest wellness website", "Fullest", "2026", "1200 / 675"],
+    ["8.png", "Tech DEV website", "Tech DEV", "2026", "1200 / 675"],
+    ["9.png", "Personal portfolio website", "Portfolio (OLD)", "2024", "1200 / 675"],
+    ["10.png", "a. a.", "a. a.", "2026", "1200 / 675"],
+    ["11.png", "Utopic game studio", "Utopic", "2026", "1200 / 675"],
+    ["12.png", "Nocode ddc", "Nocode ddc", "2022", "1200 / 675"],
+    ["13.png", "Evgeni Kozyhov portfolio website", "Evgeni Kozyhov", "2022", "1200 / 1000"],
+    ["14.png", "Portfolio website", "Portfolio (NOT me)", "2026", "1200 / 675"],
+    ["15.png", "AXION website", "AXION", "2026", "1200 / 1000"],
+];

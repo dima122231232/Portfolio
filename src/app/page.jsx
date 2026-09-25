@@ -13,15 +13,37 @@ import "./home.css";
 import About from "@/components/sections/About/About";
 import Work from "@/components/sections/Work/Work";
 import PcRoom from "@/components/scenes/Workspace/PcRoom";
+import Preloader from "@/components/Preloader/Preloader";
 
 export default function Home() {
     const page = useRef(null);
     const [heroReady, setHeroReady] =
         useState(false);
-    const [pcRoomEnabled, setPcRoomEnabled] =
-        useState(false);
-    const [pcRoomReady, setPcRoomReady] =
-        useState(false);
+
+    const [loading, setLoading] = useState({
+        hero: 0,
+        workspace: 0,
+        work: 0,
+        fonts: 0,
+    });
+
+    const updateLoading = useCallback(
+        (key, value) => {
+            const normalized = Math.min(
+                1,
+                Math.max(0, Number(value) || 0)
+            );
+
+            setLoading((previous) => ({
+                ...previous,
+                [key]: Math.max(
+                    previous[key],
+                    normalized
+                ),
+            }));
+        },
+        []
+    );
 
     const handleSceneLeave = () => {
         gsap.to(
@@ -65,24 +87,82 @@ export default function Home() {
         // });
     };
 
-    const handleHeroReady = useCallback(() => {
-        setHeroReady(true);
-    }, []);
+    const handleHeroProgress = useCallback(
+        (value) => {
+            updateLoading("hero", value);
+        },
+        [updateLoading]
+    );
 
-    const handlePcRoomReady = useCallback(
+    const handleWorkspaceProgress = useCallback(
+        (value) => {
+            updateLoading("workspace", value);
+        },
+        [updateLoading]
+    );
+
+    const handleWorkProgress = useCallback(
+        (value) => {
+            updateLoading("work", value);
+        },
+        [updateLoading]
+    );
+
+    const handleHeroReady = useCallback(
         (result) => {
             if (result?.status === "ready") {
-                setPcRoomReady(true);
+                setHeroReady(true);
+            }
+
+            if (result?.status === "error") {
+                updateLoading("hero", 1);
             }
         },
-        []
+        [updateLoading]
+    );
+
+    const handleWorkspaceReady = useCallback(
+        (result) => {
+            if (result?.status === "error") {
+                updateLoading("workspace", 1);
+            }
+        },
+        [updateLoading]
     );
 
     useEffect(() => {
-        if (heroReady) {
-            setPcRoomEnabled(true);
+        if (
+            typeof document === "undefined" ||
+            !document.fonts?.ready
+        ) {
+            updateLoading("fonts", 1);
+            return undefined;
         }
-    }, [heroReady]);
+
+        let cancelled = false;
+
+        document.fonts.ready
+            .then(() => {
+                if (!cancelled) {
+                    updateLoading("fonts", 1);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    updateLoading("fonts", 1);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [updateLoading]);
+
+    const loadingProgress =
+        loading.hero * 0.35 +
+        loading.workspace * 0.40 +
+        loading.work * 0.20 +
+        loading.fonts * 0.05;
 
     useGSAP(() => {}, { scope: page });
 
@@ -181,17 +261,23 @@ export default function Home() {
                 onLeave={handleSceneLeave}
                 onEnterBack={handleSceneEnterBack}
                 onReady={handleHeroReady}
+                onProgress={handleHeroProgress}
             />
 
             <div className="enterAnout" />
             <About />
 
             <PcRoom
-                enabled={pcRoomEnabled}
-                onReady={handlePcRoomReady}
+                onReady={handleWorkspaceReady}
+                onProgress={handleWorkspaceProgress}
             />
 
-            <Work loadImages={pcRoomReady} />
+            <Work
+                loadImages={true}
+                onImagesProgress={handleWorkProgress}
+            />
+
+            <Preloader progress={loadingProgress} />
         </main>
     );
 }

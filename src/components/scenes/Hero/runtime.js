@@ -156,8 +156,10 @@ function createPointLight(config) {
     return light;
 }
 
-function createPhoto(onLoad) {
-    const textureLoader = new THREE.TextureLoader();
+function createPhoto(manager, onLoad) {
+    const textureLoader = new THREE.TextureLoader(
+        manager
+    );
 
     textureLoader.load(
         SCENE_CONFIG.photo.path,
@@ -419,6 +421,7 @@ export function createWebGLRuntime({
     onLeave,
     onEnterBack,
     onReady,
+    onProgress,
 }) {
     if (!canvas || !wrapper) {
         return null;
@@ -446,6 +449,41 @@ export function createWebGLRuntime({
     if (!renderer) {
         return null;
     }
+
+    const loadingManager = new THREE.LoadingManager();
+
+    loadingManager.onProgress = (
+        _url,
+        itemsLoaded,
+        itemsTotal
+    ) => {
+        const fileProgress =
+            itemsTotal > 0
+                ? itemsLoaded / itemsTotal
+                : 0;
+
+        // LoadingManager may discover nested GLTF resources after the
+        // first file finishes, so do not let one early file look like 100%.
+        onProgress?.(Math.min(fileProgress * 0.8, 0.8));
+    };
+
+    onProgress?.(0);
+
+    let readyNotified = false;
+
+    const notifyReady = (result) => {
+        if (readyNotified || disposed) {
+            return;
+        }
+
+        readyNotified = true;
+
+        if (result?.status === "ready") {
+            onProgress?.(1);
+        }
+
+        onReady?.(result);
+    };
 
     renderer.autoClear = false;
 
@@ -519,7 +557,7 @@ export function createWebGLRuntime({
     composer.addPass(atmospherePass);
     composer.addPass(outputPass);
 
-    createPhoto((loadedPhoto) => {
+    createPhoto(loadingManager, (loadedPhoto) => {
         if (disposed) {
             disposePhoto(loadedPhoto);
             return;
@@ -709,7 +747,9 @@ export function createWebGLRuntime({
         setActive(isActive);
     };
 
-    const loader = new GLTFLoader();
+    const loader = new GLTFLoader(
+        loadingManager
+    );
 
     loader.load(
         SCENE_CONFIG.model.path,
@@ -721,7 +761,6 @@ export function createWebGLRuntime({
 
             model = configureModel(gltf.scene);
             heroGroup.add(model);
-            onReady?.({ status: "ready" });
         },
         undefined,
         (error) => {
@@ -730,12 +769,20 @@ export function createWebGLRuntime({
                 error
             );
 
-            onReady?.({
+            notifyReady({
                 status: "error",
                 error,
             });
         }
     );
+
+    loadingManager.onLoad = () => {
+        onProgress?.(0.92);
+
+        notifyReady({
+            status: "ready",
+        });
+    };
 
     const isTouchDevice = quality.isMobile;
 
