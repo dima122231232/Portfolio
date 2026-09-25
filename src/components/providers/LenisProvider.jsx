@@ -18,10 +18,9 @@ const LENIS_OPTIONS = {
 
     smoothWheel: true,
 
-    syncTouch: true,
-    syncTouchLerp: 0.075,
-    touchInertiaExponent: 1.7,
-    touchMultiplier: 1,
+    // Keep touch scrolling native (especially on iOS/ProMotion).
+    // Lenis smooths wheel/trackpad input, while Safari owns touch momentum.
+    syncTouch: false,
 
     wheelMultiplier: 1,
 

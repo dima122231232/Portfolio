@@ -841,28 +841,28 @@ export function createWebGLRuntime({
                 onLeave: () => {
                     setActive(false);
 
+                if (
+                    !window.matchMedia(
+                        "(max-width: 800px)"
+                    ).matches
+                ) {
                     gsap.to(".webgl-section", {
                         opacity: 0,
                         duration: .45,
                         ease: "none",
                     });
+                }
 
                     onLeave?.();
                 },
                 onEnterBack: () => {
                     setActive(true);
 
-                if (
-                    !window.matchMedia(
-                        "(max-width: 800px)"
-                    ).matches
-                    ) {
                     gsap.to(".webgl-section", {
                         opacity: 1,
                         duration: .25,
                         ease: "none",
                     });
-                }
 
                     onEnterBack?.();
                 },

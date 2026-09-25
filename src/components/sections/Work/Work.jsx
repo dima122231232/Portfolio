@@ -321,9 +321,9 @@ export default function Work({ loadImages = true, onImagesProgress }) {
             };
 
             /*
-             * Lenis emits once per rendered scroll frame.
-             * Use that event directly so the curve follows the exact same
-             * interpolation frame instead of adding another RAF hop.
+             * On touch devices Lenis leaves scrolling to the browser when
+             * syncTouch is disabled. Its native-scroll event is still emitted
+             * by Lenis, so the curve stays synchronized without another RAF.
              */
             if (lenis) {
                 lenis.on(
