@@ -157,6 +157,11 @@ function createPointLight(config) {
 }
 
 function createPhoto(manager, onLoad) {
+    if (!SCENE_CONFIG.photo.path) {
+        onLoad(null);
+        return;
+    }
+
     const textureLoader = new THREE.TextureLoader(
         manager
     );
@@ -564,10 +569,13 @@ export function createWebGLRuntime({
         }
 
         photo = loadedPhoto;
-        photoScene.add(photo);
 
-        photoGlow = createPhotoGlow(photo);
-        scene.add(photoGlow);
+        if (photo) {
+            photoScene.add(photo);
+
+            photoGlow = createPhotoGlow(photo);
+            scene.add(photoGlow);
+        }
 
         text = createText();
         if (text) {

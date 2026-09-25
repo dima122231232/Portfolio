@@ -92,7 +92,9 @@ export const SCENE_CONFIG = {
     },
 
     photo: {
-        path: "/img/main-photo.png",
+        path: isMobile
+            ? null
+            : "/img/main-photo.png",
 
         position: {
             x: 0,

@@ -17,7 +17,7 @@ const CURVE_CONFIG = {
     mobile: {
         bendStart: 0.001,
         maxAngle: 14.5,
-        perspective: 1500,
+        perspective: 1200,
     },
 };
 
