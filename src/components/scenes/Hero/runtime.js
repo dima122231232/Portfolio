@@ -852,11 +852,17 @@ export function createWebGLRuntime({
                 onEnterBack: () => {
                     setActive(true);
 
+                if (
+                    !window.matchMedia(
+                        "(max-width: 800px)"
+                    ).matches
+                    ) {
                     gsap.to(".webgl-section", {
                         opacity: 1,
                         duration: .25,
                         ease: "none",
                     });
+                }
 
                     onEnterBack?.();
                 },
