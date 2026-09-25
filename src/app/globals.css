@@ -17,13 +17,13 @@
 }
 
 ::selection {
-  background: var(--base-0);
-  color:var(--base-150); 
+  background: var(--accent-0);
+  color:var(--base-0); 
 }
 
 ::-moz-selection {
-  background: var(--base-0);
-  color:var(--base-150); 
+  background: var(--accent-0);
+  color:var(--base-0); 
 }
 
 ::-webkit-scrollbar {width: 0;height: 0;}

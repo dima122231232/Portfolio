@@ -184,6 +184,13 @@ export default function Work({ loadImages = true, onImagesProgress }) {
             }));
 
             let destroyed = false;
+            let animationFrame = 0;
+            let sectionDocumentTop = 0;
+
+            const getScrollY = () =>
+                window.scrollY ||
+                window.pageYOffset ||
+                0;
 
             const getViewportHeight = () =>
                 Math.max(
@@ -199,6 +206,9 @@ export default function Work({ loadImages = true, onImagesProgress }) {
 
                 const sectionRect =
                     root.getBoundingClientRect();
+
+                sectionDocumentTop =
+                    sectionRect.top + getScrollY();
 
                 items.forEach((item) => {
                     const element = item.element;
@@ -223,13 +233,12 @@ export default function Work({ loadImages = true, onImagesProgress }) {
                     return;
                 }
 
-                const sectionRect =
-                    root.getBoundingClientRect();
-
                 const viewportHeight =
                     getViewportHeight();
+                const scrollY = getScrollY();
 
                 const viewportCenter =
+                    scrollY +
                     viewportHeight * 0.5;
 
                 const halfViewport =
@@ -259,7 +268,7 @@ export default function Work({ loadImages = true, onImagesProgress }) {
 
                 items.forEach((item) => {
                     const itemCenterY =
-                        sectionRect.top +
+                        sectionDocumentTop +
                         item.top +
                         item.height * 0.5;
 
@@ -320,16 +329,37 @@ export default function Work({ loadImages = true, onImagesProgress }) {
                 updateCurve();
             };
 
-            /*
-             * On touch devices Lenis leaves scrolling to the browser when
-             * syncTouch is disabled. Its native-scroll event is still emitted
-             * by Lenis, so the curve stays synchronized without another RAF.
-             */
+            const scheduleCurveUpdate = () => {
+                if (animationFrame || destroyed) {
+                    return;
+                }
+
+                animationFrame = requestAnimationFrame(() => {
+                    animationFrame = 0;
+                    updateCurve();
+                });
+            };
+
+            let removeScrollListener;
+
             if (lenis) {
-                lenis.on(
+                removeScrollListener = lenis.on(
                     "scroll",
-                    updateCurve
+                    scheduleCurveUpdate
                 );
+            } else {
+                window.addEventListener(
+                    "scroll",
+                    scheduleCurveUpdate,
+                    { passive: true }
+                );
+
+                removeScrollListener = () => {
+                    window.removeEventListener(
+                        "scroll",
+                        scheduleCurveUpdate
+                    );
+                };
             }
 
             window.addEventListener(
@@ -362,6 +392,9 @@ export default function Work({ loadImages = true, onImagesProgress }) {
                 cancelAnimationFrame(
                     firstFrame
                 );
+                cancelAnimationFrame(
+                    animationFrame
+                );
 
                 window.removeEventListener(
                     "resize",
@@ -369,13 +402,7 @@ export default function Work({ loadImages = true, onImagesProgress }) {
                 );
 
                 resizeObserver.disconnect();
-
-                if (lenis) {
-                    lenis.off(
-                        "scroll",
-                        updateCurve
-                    );
-                }
+                removeScrollListener?.();
 
                 items.forEach((item) => {
                     item.element.style.transform =

@@ -64,12 +64,12 @@ export default function PcRoom({ onReady, onProgress }) {
             ).matches;
 
         const startY = isMobile
-            ? "-20svh"
-            : "-2vh";
+            ? "-7.5svh"
+            : "-35vh";
 
         const endY = isMobile
-            ? "20svh"
-            : "2vh";
+            ? "7.5svh"
+            : "35vh";
 
         const canvasTween =
             gsap.fromTo(

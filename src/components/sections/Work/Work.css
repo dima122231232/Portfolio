@@ -60,7 +60,9 @@
 .Work__intro p {
     color: var(--base-100);
 }
-
+@media (max-width: 1600px) {
+    .Work__wrapper {gap: 3.5rem;}
+}
 @media (max-width: 1200px) {
     .Work {
         padding: 3rem 1rem;
@@ -68,7 +70,7 @@
 
     .Work__wrapper {
         grid-template-columns: repeat(2, 1fr);
-        gap: 3.5rem;
+        gap: 3rem;
     }
 
     .Work__intro {
