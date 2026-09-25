@@ -257,27 +257,27 @@ export default function Home() {
 
             <div className="Bg__blur" />
 
-            {/* <ThreeScene
+            <ThreeScene
                 onLeave={handleSceneLeave}
                 onEnterBack={handleSceneEnterBack}
                 onReady={handleHeroReady}
                 onProgress={handleHeroProgress}
-            /> */}
+            />
 
             <div className="enterAnout" />
             <About />
 
-            {/* <PcRoom
+            <PcRoom
                 onReady={handleWorkspaceReady}
                 onProgress={handleWorkspaceProgress}
-            /> */}
+            />
 
             <Work
                 loadImages={true}
                 onImagesProgress={handleWorkProgress}
             />
 
-            {/* <Preloader progress={loadingProgress} /> */}
+            <Preloader progress={loadingProgress} />
         </main>
     );
 }

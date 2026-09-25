@@ -58,6 +58,7 @@ export default function Preloader({ progress = 0 }) {
 
             gsap.killTweensOf(proxy.current);
             gsap.killTweensOf(element);
+
             lenis?.start?.();
         };
     }, [lenis]);
@@ -84,13 +85,15 @@ export default function Preloader({ progress = 0 }) {
             duration: 0.35,
             ease: "power2.out",
             overwrite: true,
+
             onUpdate: () => {
                 const value = Math.round(
                     proxy.current.value
                 );
 
                 if (percent.current) {
-                    percent.current.textContent = `${value}%`;
+                    percent.current.textContent =
+                        `${value}%`;
                 }
 
                 if (bar.current) {
@@ -99,6 +102,7 @@ export default function Preloader({ progress = 0 }) {
                     });
                 }
             },
+
             onComplete: () => {
                 if (
                     target < 100 ||
@@ -109,22 +113,63 @@ export default function Preloader({ progress = 0 }) {
 
                 isClosing.current = true;
 
-                gsap.timeline({
+                const exitDuration = 500;
+
+                const timeline = gsap.timeline({
                     defaults: {
                         ease: "power2.inOut",
                     },
+
                     onComplete: () => {
                         document.body.classList.remove(
                             "preloader-active"
                         );
+
                         lenis?.start?.();
+
+                        window.dispatchEvent(
+                            new CustomEvent(
+                                "preloader:complete"
+                            )
+                        );
                     },
-                })
+                });
+
+                /*
+                 * В этот момент начинается финальное
+                 * исчезновение Preloader.
+                 *
+                 * Другие компоненты получают:
+                 *
+                 * endAt  → точное время окончания
+                 * duration → длительность fade
+                 */
+                timeline.call(() => {
+                    const endAt =
+                        performance.now() +
+                        exitDuration;
+
+                    window.dispatchEvent(
+                        new CustomEvent(
+                            "preloader:exit",
+                            {
+                                detail: {
+                                    endAt,
+                                    duration:
+                                        exitDuration,
+                                },
+                            }
+                        )
+                    );
+                });
+
+                timeline
                     .to(
                         proxy.current,
                         {
                             value: 100,
                             duration: 0.15,
+
                             onUpdate: () => {
                                 if (percent.current) {
                                     percent.current.textContent =
@@ -144,7 +189,8 @@ export default function Preloader({ progress = 0 }) {
                     )
                     .to(element, {
                         autoAlpha: 0,
-                        duration: 0.65,
+                        duration:
+                            exitDuration / 1000,
                         ease: "power2.out",
                     })
                     .set(element, {
