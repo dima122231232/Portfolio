@@ -32,12 +32,55 @@ if (typeof window !== "undefined") {
     });
 }
 
+function getSmallViewportHeight() {
+    if (
+        typeof window === "undefined" ||
+        typeof document === "undefined"
+    ) {
+        return 1;
+    }
+
+    let probe = document.documentElement.querySelector(
+        "[data-three-svh-probe]"
+    );
+
+    if (!probe) {
+        probe = document.createElement("div");
+
+        probe.setAttribute(
+            "data-three-svh-probe",
+            ""
+        );
+
+        probe.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 100svh;
+            visibility: hidden;
+            pointer-events: none;
+            opacity: 0;
+        `;
+
+        document.documentElement.appendChild(probe);
+    }
+
+    return Math.max(
+        1,
+        probe.getBoundingClientRect().height
+    );
+}
+
 function getLayoutViewportSize() {
     const root = document.documentElement;
 
     return {
-        width: Math.max(1, root.clientWidth || window.innerWidth),
-        height: Math.max(1, root.clientHeight || window.innerHeight),
+        width: Math.max(
+            1,
+            root.clientWidth || window.innerWidth
+        ),
+        height: getSmallViewportHeight(),
     };
 }
 
@@ -537,8 +580,10 @@ export function createWebGLRuntime({
         camera
     );
 
-    const { width: initialWidth, height: initialHeight } =
-        getLayoutViewportSize();
+    const {
+        width: initialWidth,
+        height: initialHeight,
+    } = getLayoutViewportSize();
 
     const bloomPass = new UnrealBloomPass(
         new THREE.Vector2(
@@ -578,6 +623,7 @@ export function createWebGLRuntime({
         }
 
         text = createText();
+
         if (text) {
             photoScene.add(text);
         }
@@ -600,6 +646,7 @@ export function createWebGLRuntime({
     const coreDefaultColor = new THREE.Color(
         SCENE_CONFIG.lights.core.color
     );
+
     const coreHoverColor = new THREE.Color(
         0xba55d3
     );
@@ -678,7 +725,10 @@ export function createWebGLRuntime({
     };
 
     const handleResize = () => {
-        const { width, height } = getLayoutViewportSize();
+        const {
+            width,
+            height,
+        } = getLayoutViewportSize();
 
         // Ignore resize events caused only by the mobile browser UI.
         // Rebuild the WebGL/ScrollTrigger geometry only when the actual
@@ -696,6 +746,7 @@ export function createWebGLRuntime({
         const nextPixelRatio = getPixelRatio(
             quality.maxPixelRatio
         );
+
         const nextComposerPixelRatio = getPixelRatio(
             quality.composerMaxPixelRatio
         );
@@ -704,12 +755,25 @@ export function createWebGLRuntime({
         camera.updateProjectionMatrix();
 
         renderer.setPixelRatio(nextPixelRatio);
-        renderer.setSize(width, height, false);
+        renderer.setSize(
+            width,
+            height,
+            false
+        );
 
-        composer.setPixelRatio(nextComposerPixelRatio);
-        composer.setSize(width, height);
+        composer.setPixelRatio(
+            nextComposerPixelRatio
+        );
+        composer.setSize(
+            width,
+            height
+        );
 
-        bloomPass.resolution.set(width, height);
+        bloomPass.resolution.set(
+            width,
+            height
+        );
+
         atmospherePass.uniforms.uGrain.value =
             SCENE_CONFIG.atmosphere.grain;
 
@@ -718,7 +782,10 @@ export function createWebGLRuntime({
         );
 
         layers.forEach((layer) => {
-            layer.resize?.(width, height);
+            layer.resize?.(
+                width,
+                height
+            );
         });
 
         ScrollTrigger.refresh();
@@ -747,7 +814,9 @@ export function createWebGLRuntime({
         }
 
         if (!animationFrame) {
-            animationFrame = requestAnimationFrame(render);
+            animationFrame = requestAnimationFrame(
+                render
+            );
         }
     };
 
@@ -799,6 +868,7 @@ export function createWebGLRuntime({
             "pointermove",
             updatePointer
         );
+
         window.addEventListener(
             "pointermove",
             updatePhotoHover
@@ -817,52 +887,70 @@ export function createWebGLRuntime({
 
     const scrollHeightMultiplier =
         window.innerWidth < 800 ? 3.5 : 1;
-    
+
     const scrollTween = gsap.to(
         camera.position,
         {
             z:
                 baseCameraPosition.z +
                 SCENE_CONFIG.interaction.scroll.cameraZ,
+
             ease: "none",
+
             scrollTrigger: {
                 trigger: wrapper,
+
                 start: "top top",
+
                 end: () => {
-                    const { height } = getLayoutViewportSize();
-                    return `+=${ 
-                        height * scrollHeightMultiplier *
+                    const {
+                        height,
+                    } = getLayoutViewportSize();
+
+                    return `+=${
+                        height *
+                        scrollHeightMultiplier *
                         SCENE_CONFIG.interaction.scroll.endMultiplier
                     }px`;
                 },
+
                 scrub:
                     SCENE_CONFIG.interaction.scroll.scrub,
+
                 invalidateOnRefresh: true,
+
                 onLeave: () => {
                     setActive(false);
 
-                if (
-                    !window.matchMedia(
-                        "(max-width: 800px)"
-                    ).matches
-                ) {
-                    gsap.to(".webgl-section", {
-                        opacity: 0,
-                        duration: .45,
-                        ease: "none",
-                    });
-                }
+                    if (
+                        !window.matchMedia(
+                            "(max-width: 800px)"
+                        ).matches
+                    ) {
+                        gsap.to(
+                            ".webgl-section",
+                            {
+                                opacity: 0,
+                                duration: 0.45,
+                                ease: "none",
+                            }
+                        );
+                    }
 
                     onLeave?.();
                 },
+
                 onEnterBack: () => {
                     setActive(true);
 
-                    gsap.to(".webgl-section", {
-                        opacity: 1,
-                        duration: .25,
-                        ease: "none",
-                    });
+                    gsap.to(
+                        ".webgl-section",
+                        {
+                            opacity: 1,
+                            duration: 0.25,
+                            ease: "none",
+                        }
+                    );
 
                     onEnterBack?.();
                 },
@@ -894,7 +982,10 @@ export function createWebGLRuntime({
         );
 
         previousTimestamp = timestamp;
-        elapsedTime += Math.max(delta, 0);
+        elapsedTime += Math.max(
+            delta,
+            0
+        );
 
         updateParticleSystem(
             particleSystem,
@@ -920,7 +1011,10 @@ export function createWebGLRuntime({
         }
 
         layers.forEach((layer) => {
-            if (!layer.scene || !layer.camera) {
+            if (
+                !layer.scene ||
+                !layer.camera
+            ) {
                 return;
             }
 
@@ -930,13 +1024,18 @@ export function createWebGLRuntime({
             );
         });
 
-        if (isActive && !document.hidden) {
-            animationFrame = requestAnimationFrame(render);
+        if (
+            isActive &&
+            !document.hidden
+        ) {
+            animationFrame =
+                requestAnimationFrame(render);
         }
     };
 
     if (!document.hidden) {
-        animationFrame = requestAnimationFrame(render);
+        animationFrame =
+            requestAnimationFrame(render);
     }
 
     return {
@@ -959,6 +1058,7 @@ export function createWebGLRuntime({
                     "pointermove",
                     updatePointer
                 );
+
                 window.removeEventListener(
                     "pointermove",
                     updatePhotoHover
@@ -976,32 +1076,52 @@ export function createWebGLRuntime({
             );
 
             if (animationFrame) {
-                cancelAnimationFrame(animationFrame);
+                cancelAnimationFrame(
+                    animationFrame
+                );
+
                 animationFrame = 0;
             }
 
             scrollTween.scrollTrigger?.kill();
             scrollTween.kill();
 
-            gsap.killTweensOf(camera.rotation);
-            gsap.killTweensOf(camera.position);
-            gsap.killTweensOf(coreLight.color);
+            gsap.killTweensOf(
+                camera.rotation
+            );
+
+            gsap.killTweensOf(
+                camera.position
+            );
+
+            gsap.killTweensOf(
+                coreLight.color
+            );
 
             if (photo) {
-                gsap.killTweensOf(photo.position);
+                gsap.killTweensOf(
+                    photo.position
+                );
             }
 
             if (photoGlow) {
-                gsap.killTweensOf(photoGlow.position);
+                gsap.killTweensOf(
+                    photoGlow.position
+                );
             }
 
             if (text) {
-                gsap.killTweensOf(text.position);
+                gsap.killTweensOf(
+                    text.position
+                );
             }
 
             disposeObject(model);
             disposeObject(particleSystem);
-            disposeObject(particleVolumeHelper);
+            disposeObject(
+                particleVolumeHelper
+            );
+
             disposePhoto(photo);
             disposePhotoGlow(photoGlow);
             disposeText(text);

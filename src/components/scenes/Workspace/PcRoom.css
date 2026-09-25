@@ -30,6 +30,7 @@
 @media (max-width: 800px) {
     .PcScene p {
         left: var(--indent);
+        display: none;
     }
     .PcScene{
         height:70svh;
