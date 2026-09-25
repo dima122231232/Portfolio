@@ -4,6 +4,7 @@ import "./Footer.css";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { CONTACT } from "@/lib/contact";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -61,19 +62,27 @@ export default function Footer() {
                 </div>
 
                 <div className="Footer__links">
-                    <div className="Footer__link">
-                        <button className="Footer__button">
-                            <div></div>
-                            <span>dimokmilok46@gmail.com</span>
-                        </button>
-                    </div>
+                <div className="Footer__link">
+                    <a
+                        className="Footer__button"
+                        href={CONTACT.emailLink}
+                    >
+                        <div></div>
+                        <span>{CONTACT.email}</span>
+                    </a>
+                </div>
 
-                    <div className="Footer__link">
-                        <button className="Footer__button">
-                            <div></div>
-                            <span>upwork</span>
-                        </button>
-                    </div>
+                <div className="Footer__link">
+                    <a
+                        className="Footer__button"
+                        href={CONTACT.upwork}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <div></div>
+                        <span>upwork</span>
+                    </a>
+                </div>
                 </div>
             </footer>
         </>

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import "./About.css";
+import { CONTACT } from "@/lib/contact";
 
 export default function About() {
     const section = useRef(null);
@@ -59,7 +60,13 @@ export default function About() {
 
                     <div>
                         <p>My Freelance</p>
-                        <a href="#">upwork</a>
+                        <a
+                            href={CONTACT.upwork}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            upwork
+                        </a>
                     </div>
                 </div>
 

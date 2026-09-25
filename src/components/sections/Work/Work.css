@@ -14,7 +14,7 @@
     width: 100%;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 9.2rem;
+    gap: 8rem;
     transform-style: preserve-3d;
 }
 
