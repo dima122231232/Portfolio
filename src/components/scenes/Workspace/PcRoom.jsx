@@ -64,11 +64,11 @@ export default function PcRoom({ onReady, onProgress }) {
             ).matches;
 
         const startY = isMobile
-            ? "-7.5svh"
+            ? "-5svh"
             : "-35vh";
 
         const endY = isMobile
-            ? "7.5svh"
+            ? "5svh"
             : "35vh";
 
         const canvasTween =

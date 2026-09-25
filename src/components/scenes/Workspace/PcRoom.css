@@ -31,6 +31,12 @@
     .PcScene p {
         left: var(--indent);
     }
+    .PcScene{
+        height:80svh;
+    }
+    .PcScene__canvas{
+        height:90svh;
+    }
 
     .PcScene__canvas {
         pointer-events: none;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ReactLenis, useLenis as useLenisInstance } from "lenis/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -17,6 +17,7 @@ const LENIS_OPTIONS = {
     autoToggle: true,
 
     smoothWheel: true,
+
     syncTouch: false,
 
     wheelMultiplier: 1,
@@ -33,31 +34,6 @@ const LENIS_OPTIONS = {
 
 export const useLenis = useLenisInstance;
 
-function useNativeTouchScroll() {
-    const [isNativeTouchScroll, setIsNativeTouchScroll] =
-        useState(false);
-
-    useEffect(() => {
-        const mediaQuery = window.matchMedia(
-            "(pointer: coarse), (max-width: 800px)"
-        );
-
-        const update = () => {
-            setIsNativeTouchScroll(mediaQuery.matches);
-        };
-
-        update();
-
-        mediaQuery.addEventListener?.("change", update);
-
-        return () => {
-            mediaQuery.removeEventListener?.("change", update);
-        };
-    }, []);
-
-    return isNativeTouchScroll;
-}
-
 function LenisGSAPSync({ children }) {
     const lenis = useLenisInstance();
 
@@ -70,11 +46,14 @@ function LenisGSAPSync({ children }) {
             lenis.raf(time * 1000);
         };
 
-        const handleScroll = () => {
+        const updateScrollTrigger = () => {
             ScrollTrigger.update();
         };
 
-        lenis.on("scroll", handleScroll);
+        lenis.on(
+            "scroll",
+            updateScrollTrigger
+        );
 
         gsap.ticker.add(update);
         gsap.ticker.lagSmoothing(0);
@@ -84,7 +63,11 @@ function LenisGSAPSync({ children }) {
         });
 
         return () => {
-            lenis.off("scroll", handleScroll);
+            lenis.off(
+                "scroll",
+                updateScrollTrigger
+            );
+
             gsap.ticker.remove(update);
             cancelAnimationFrame(refreshFrame);
         };
@@ -94,18 +77,6 @@ function LenisGSAPSync({ children }) {
 }
 
 export default function LenisProvider({ children }) {
-    const useNativeScroll = useNativeTouchScroll();
-
-    /*
-     * Touch / coarse-pointer devices use the browser's native scrolling.
-     * This avoids adding a non-passive touchmove listener and an extra
-     * animation loop to iOS/Android, while desktop keeps the full Lenis
-     * + GSAP integration.
-     */
-    if (useNativeScroll) {
-        return children;
-    }
-
     return (
         <ReactLenis
             root

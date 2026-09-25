@@ -19,7 +19,7 @@ export default function ThreeScene({
     const onReadyRef = useRef(onReady);
     const onProgressRef = useRef(onProgress);
 
-    const PRELOADER_OFFSET = 50;
+    const PRELOADER_OFFSET = 0;
 
     useEffect(() => {
         onLeaveRef.current = onLeave;
