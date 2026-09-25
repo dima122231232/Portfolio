@@ -760,6 +760,9 @@ export function createWebGLRuntime({
         handleVisibilityChange
     );
 
+    const scrollHeightMultiplier =
+        window.innerWidth < 800 ? 3 : 1;
+    
     const scrollTween = gsap.to(
         camera.position,
         {
@@ -772,8 +775,8 @@ export function createWebGLRuntime({
                 start: "top top",
                 end: () => {
                     const { height } = getLayoutViewportSize();
-                    return `+=${
-                        height *
+                    return `+=${ 
+                        height * scrollHeightMultiplier *
                         SCENE_CONFIG.interaction.scroll.endMultiplier
                     }px`;
                 },
@@ -785,7 +788,7 @@ export function createWebGLRuntime({
 
                     gsap.to(".webgl-section", {
                         opacity: 0,
-                        duration: 0.5,
+                        duration: .45,
                         ease: "none",
                     });
 
@@ -796,7 +799,7 @@ export function createWebGLRuntime({
 
                     gsap.to(".webgl-section", {
                         opacity: 1,
-                        duration: 0.2,
+                        duration: .25,
                         ease: "none",
                     });
 
